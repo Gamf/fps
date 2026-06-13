@@ -3,6 +3,16 @@
   "title": "FPS",
   "games": [
     {
+      "slug": "wave-range",
+      "title": "Wave Range",
+      "path": "games/wave-range/",
+      "icon": "🎯",
+      "dims": "3D",
+      "tags": ["look", "shoot", "timed"],
+      "license": "MIT",
+      "credit": "Gamf sample"
+    },
+    {
       "slug": "sample-shooter",
       "title": "Target Range",
       "path": "games/sample-shooter/",
