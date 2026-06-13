@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#0e0f13">
+  <title>Target Range — Gamf</title>
+  <style>
+    *{box-sizing:border-box} html,body{margin:0;height:100%;overflow:hidden;background:#0e0f13;color:#f2f3f5;
+      font-family:system-ui,sans-serif;-webkit-tap-highlight-color:transparent;touch-action:none;
+      -webkit-user-select:none;user-select:none}
+    .hud{position:fixed;top:env(safe-area-inset-top);left:0;right:0;display:flex;gap:16px;
+      padding:12px 16px;align-items:center;pointer-events:none;z-index:2}
+    .hud a{color:#6c8cff;text-decoration:none;font-size:.9rem;pointer-events:auto}
+    .hud .score{margin-left:auto;font-weight:700}
+    /* Crosshair fixed at screen centre. */
+    .cross{position:fixed;top:50%;left:50%;width:22px;height:22px;margin:-11px 0 0 -11px;z-index:2;pointer-events:none}
+    .cross::before,.cross::after{content:"";position:absolute;background:#fff;opacity:.8}
+    .cross::before{left:10px;top:0;width:2px;height:22px}.cross::after{top:10px;left:0;height:2px;width:22px}
+    .hint{position:fixed;bottom:calc(env(safe-area-inset-bottom) + 14px);left:0;right:0;text-align:center;
+      color:#7d8493;font-size:.85rem;z-index:2;pointer-events:none}
+    canvas{display:block;width:100%;height:100%;touch-action:none}
+  </style>
+</head>
+<body>
+  <div class="hud"><a href="../../">← FPS</a><span class="score">Hits: <b id="hits">0</b></span></div>
+  <div class="cross"></div>
+  <div class="hint">Drag to look · tap to shoot what's under the crosshair</div>
+  <script type="importmap">
+    { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
+  </script>
+  <script type="module">
+    import * as THREE from 'three';
+    import { onDrag, onTap } from './touch.js';
+
+    const renderer = new THREE.WebGLRenderer({ antialias:true });
+    renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));
+    document.body.appendChild(renderer.domElement);
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x10131b);
+    scene.fog = new THREE.Fog(0x10131b, 10, 40);
+
+    const camera = new THREE.PerspectiveCamera(70, 1, 0.1, 100);
+    camera.position.set(0, 1.6, 0);
+    let yaw = 0, pitch = 0;
+
+    // Floor + lights
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(80,80),
+      new THREE.MeshStandardMaterial({ color:0x1b2030 }));
+    floor.rotation.x = -Math.PI/2; scene.add(floor);
+    scene.add(new THREE.HemisphereLight(0xffffff, 0x202840, 1.0));
+    const dir = new THREE.DirectionalLight(0xffffff, 0.7); dir.position.set(4,8,2); scene.add(dir);
+
+    // Targets scattered in front of the player.
+    const targets = [];
+    let seed = 7; const rand = () => (seed = (seed*1103515245+12345)&0x7fffffff) / 0x7fffffff;
+    function spawnTarget(){
+      const m = new THREE.Mesh(new THREE.SphereGeometry(0.6, 20, 16),
+        new THREE.MeshStandardMaterial({ color:0xe0556b, emissive:0x551020 }));
+      m.position.set((rand()-0.5)*22, 0.8 + rand()*3, -6 - rand()*22);
+      scene.add(m); targets.push(m);
+    }
+    for (let i=0;i<8;i++) spawnTarget();
+
+    // Drag to look around.
+    onDrag(renderer.domElement, { move:({dx,dy})=>{
+      yaw   -= dx * 0.004;
+      pitch -= dy * 0.004;
+      pitch = Math.max(-1.2, Math.min(1.2, pitch));
+    }});
+
+    // Tap to shoot a ray straight out of the crosshair (screen centre).
+    let hits = 0;
+    const raycaster = new THREE.Raycaster();
+    onTap(renderer.domElement, () => {
+      raycaster.setFromCamera({ x:0, y:0 }, camera);
+      const hit = raycaster.intersectObjects(targets)[0];
+      if (hit){
+        const i = targets.indexOf(hit.object);
+        scene.remove(hit.object); targets.splice(i,1);
+        hits++; document.getElementById('hits').textContent = hits;
+        spawnTarget();
+      }
+    });
+
+    function resize(){ const w=innerWidth,h=innerHeight; renderer.setSize(w,h);
+      camera.aspect=w/h; camera.updateProjectionMatrix(); }
+    addEventListener('resize', resize); resize();
+
+    function animate(){
+      camera.rotation.set(0,0,0,'YXZ');
+      camera.rotateY(yaw); camera.rotateX(pitch);
+      renderer.render(scene,camera);
+      requestAnimationFrame(animate);
+    }
+    animate();
+  </script>
+</body>
+</html>

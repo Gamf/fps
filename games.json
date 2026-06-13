@@ -1,0 +1,16 @@
+{
+  "genre": "fps",
+  "title": "FPS",
+  "games": [
+    {
+      "slug": "sample-shooter",
+      "title": "Target Range",
+      "path": "games/sample-shooter/",
+      "icon": "🎯",
+      "dims": "3D",
+      "tags": ["look", "shoot", "three.js"],
+      "license": "MIT",
+      "credit": "Gamf sample"
+    }
+  ]
+}
