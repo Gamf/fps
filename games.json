@@ -3,6 +3,17 @@
   "title": "FPS",
   "games": [
     {
+      "slug": "gallery",
+      "title": "Gallery",
+      "path": "games/gallery/",
+      "icon": "🎯",
+      "color": "#e0556b",
+      "dims": "3D",
+      "tags": ["shoot", "combo", "timed", "three.js"],
+      "license": "MIT",
+      "credit": "Gamf original"
+    },
+    {
       "slug": "drone-hunt",
       "title": "Drone Hunt",
       "path": "games/drone-hunt/",
@@ -19,16 +30,6 @@
       "icon": "🎯",
       "dims": "3D",
       "tags": ["look", "shoot", "timed"],
-      "license": "MIT",
-      "credit": "Gamf sample"
-    },
-    {
-      "slug": "sample-shooter",
-      "title": "Target Range",
-      "path": "games/sample-shooter/",
-      "icon": "🎯",
-      "dims": "3D",
-      "tags": ["look", "shoot", "three.js"],
       "license": "MIT",
       "credit": "Gamf sample"
     }

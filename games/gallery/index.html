@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#07080c">
+  <title>Gallery — Gamf</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../gamf.css">
+  <style>
+    /* fps genre accent */
+    body { --gx-accent: #e0556b; }
+    html, body { height: 100%; overflow: hidden; touch-action: none;
+      -webkit-user-select: none; user-select: none; }
+    /* the body backdrop is hidden behind the canvas, keep it dark */
+    body { background: #07080c; }
+    canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+
+    /* crosshair reticle */
+    .cross { position: fixed; top: 50%; left: 50%; width: 30px; height: 30px;
+      margin: -15px 0 0 -15px; z-index: 4; pointer-events: none;
+      filter: drop-shadow(0 0 5px rgba(224,85,107,.85)); transition: transform .07s ease-out; }
+    .cross.kick { transform: scale(.78); }
+    .cross::before, .cross::after { content: ""; position: absolute; background: #ffd2da; opacity: .92; border-radius: 2px; }
+    .cross::before { left: 14px; top: 0; width: 2px; height: 30px; }
+    .cross::after { top: 14px; left: 0; height: 2px; width: 30px; }
+    .cross span { position: absolute; inset: 4px; border: 2px solid rgba(224,85,107,.6); border-radius: 50%; }
+
+    /* combo banner (center-top) */
+    .combo { position: fixed; top: calc(env(safe-area-inset-top) + 54px); left: 0; right: 0;
+      text-align: center; z-index: 4; pointer-events: none;
+      font-family: var(--gx-font-display); font-weight: 700; font-size: 1.45rem;
+      color: var(--gx-warn); text-shadow: 0 2px 12px rgba(0,0,0,.6);
+      opacity: 0; transform: translateY(6px) scale(.9); transition: opacity .18s, transform .18s; }
+    .combo.show { opacity: 1; transform: translateY(0) scale(1); }
+
+    /* floating score-pop labels */
+    .pops { position: fixed; inset: 0; z-index: 4; pointer-events: none; overflow: hidden; }
+    .pop { position: absolute; transform: translate(-50%,-50%);
+      font-family: var(--gx-font-display); font-weight: 700; font-size: 1.1rem;
+      color: #fff; text-shadow: 0 2px 8px rgba(0,0,0,.7); animation: popUp .8s ease-out forwards; }
+    @keyframes popUp { 0% { opacity: 0; transform: translate(-50%,-40%) scale(.7); }
+      18% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%,-130%) scale(1.05); } }
+
+    /* round-flash */
+    .roundtag { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%);
+      z-index: 4; pointer-events: none; text-align: center;
+      font-family: var(--gx-font-display); font-weight: 700; color: var(--gx-text);
+      opacity: 0; transition: opacity .3s; }
+    .roundtag.show { opacity: 1; }
+    .roundtag b { display: block; font-size: 2rem; color: var(--gx-accent); }
+    .roundtag span { color: var(--gx-text-2); font-size: .95rem; }
+
+    /* timer bar */
+    .timebar { position: fixed; left: 0; right: 0; top: env(safe-area-inset-top); height: 3px; z-index: 5;
+      background: transparent; pointer-events: none; }
+    .timebar i { display: block; height: 100%; width: 100%; transform-origin: left;
+      background: linear-gradient(90deg, var(--gx-accent), var(--gx-warn)); transition: transform .12s linear; }
+    @media (prefers-reduced-motion: reduce) { .pop { animation: none; } }
+  </style>
+</head>
+<body class="gx">
+  <script src="../../gamf-icons.js"></script>
+
+  <div class="timebar"><i id="timefill"></i></div>
+
+  <!-- top HUD -->
+  <header class="gx-hud">
+    <a class="gx-hud__back" href="../../"><svg class="gx-ico"><use href="#i-back"/></svg> FPS</a>
+    <span class="gx-hud__spacer"></span>
+    <span class="gx-pill"><svg class="gx-ico" style="width:1em;height:1em"><use href="#i-pause"/></svg> <span id="timeTxt">45</span>s</span>
+    <span class="gx-pill">Score <b id="score">0</b></span>
+    <span class="gx-pill gx-pill--best"><svg class="gx-ico" style="width:1em;height:1em"><use href="#i-trophy"/></svg> <b id="bestHud">0</b></span>
+  </header>
+
+  <div class="combo" id="combo">x2</div>
+  <div class="roundtag" id="roundtag"><b id="roundName">Round 1</b><span id="roundSub">Hit the targets!</span></div>
+
+  <div class="cross" id="cross"><span></span></div>
+  <div class="pops" id="pops"></div>
+
+  <!-- controls hint -->
+  <div class="gx-hint">
+    <span class="gx-hint__chip"><svg class="gx-ico"><use href="#i-touch"/></svg> Drag to aim</span>
+    <span class="gx-hint__chip"><svg class="gx-ico"><use href="#i-touch"/></svg> Tap to shoot</span>
+    <span class="gx-hint__chip"><svg class="gx-ico"><use href="#i-keyboard"/></svg> WASD / Arrows</span>
+    <span class="gx-hint__chip"><svg class="gx-ico"><use href="#i-keyboard"/></svg> Space fire</span>
+    <span class="gx-hint__chip"><svg class="gx-ico"><use href="#i-pause"/></svg> P pause · R restart</span>
+  </div>
+
+  <!-- pause / game-over modal -->
+  <div class="gx-modal" id="over">
+    <div class="gx-modal__card">
+      <h2 class="gx-modal__title" id="title">Time!</h2>
+      <div class="gx-modal__row"><span>Score</span> <b id="finalScore">0</b></div>
+      <div class="gx-modal__row"><span>Best combo</span> <b id="finalCombo">x1</b></div>
+      <div class="gx-modal__row"><span>Accuracy</span> <b id="finalAcc">0%</b></div>
+      <div class="gx-modal__row"><span>Best</span> <b id="best">0</b></div>
+      <div class="gx-modal__new" id="newbest"></div>
+      <button class="gx-btn gx-btn--primary" id="again"><svg class="gx-ico"><use href="#i-restart"/></svg> Play again</button>
+    </div>
+  </div>
+
+  <script type="importmap">
+    { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
+  </script>
+  <script type="module">
+    import * as THREE from 'three';
+    import { onDrag, onTap } from './touch.js';
+
+    const SLUG = 'gallery', BEST_KEY = 'gamf-fps-' + SLUG + '-best';
+
+    // ---- Renderer ----
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+    renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    document.body.appendChild(renderer.domElement);
+
+    // ---- Scene + atmosphere ----
+    const scene = new THREE.Scene();
+    const skyMat = new THREE.ShaderMaterial({ side: THREE.BackSide, uniforms: {
+      top: { value: new THREE.Color(0x21162a) }, bot: { value: new THREE.Color(0x07080c) } },
+      vertexShader: `varying vec3 v; void main(){ v=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);} `,
+      fragmentShader: `varying vec3 v; uniform vec3 top; uniform vec3 bot;
+        void main(){ float h=clamp((normalize(v).y+0.30),0.0,1.0); gl_FragColor=vec4(mix(bot,top,h),1.0);} ` });
+    scene.add(new THREE.Mesh(new THREE.SphereGeometry(80, 24, 16), skyMat));
+    scene.fog = new THREE.Fog(0x100912, 14, 60);
+
+    const camera = new THREE.PerspectiveCamera(72, 1, 0.1, 120);
+    camera.position.set(0, 1.6, 0);
+    let yaw = 0, pitch = 0;
+
+    // ---- Deterministic LCG (no Math.random / Date) ----
+    let seed = 0x9e3779b1;
+    const rand = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+    const rrange = (a, b) => a + (b - a) * rand();
+
+    // ---- Booth scene ----
+    // wooden floor
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(120, 120),
+      new THREE.MeshStandardMaterial({ color: 0x2a1d22, roughness: 0.92, metalness: 0.05 }));
+    floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
+    const grid = new THREE.GridHelper(120, 60, 0x4a2f3a, 0x271a22); grid.position.y = 0.01;
+    grid.material.transparent = true; grid.material.opacity = 0.35; scene.add(grid);
+
+    // back wall of the booth
+    const wall = new THREE.Mesh(new THREE.PlaneGeometry(60, 26),
+      new THREE.MeshStandardMaterial({ color: 0x140d17, roughness: 1 }));
+    wall.position.set(0, 6, -34); wall.receiveShadow = true; scene.add(wall);
+
+    // striped awning across the top of the booth
+    const ROWS_Z = [-14, -20, -27];        // depth of each lane (near -> far)
+    const RAILS = [];
+    for (const z of ROWS_Z) {
+      // back rail bar each lane rides on
+      const rail = new THREE.Mesh(new THREE.BoxGeometry(40, 0.12, 0.5),
+        new THREE.MeshStandardMaterial({ color: 0x3a2730, roughness: 0.6, metalness: 0.5 }));
+      rail.position.set(0, 0.7, z + 0.6); rail.receiveShadow = true; scene.add(rail);
+      RAILS.push(rail);
+    }
+    // awning canopy
+    const awnGeo = new THREE.BoxGeometry(2.6, 0.5, 4);
+    for (let i = -7; i <= 7; i++) {
+      const m = new THREE.Mesh(awnGeo, new THREE.MeshStandardMaterial({
+        color: (i & 1) ? 0xe0556b : 0xf2eef0, roughness: 0.7 }));
+      m.position.set(i * 2.6, 9.2, -10); m.rotation.x = -0.32; m.castShadow = true; scene.add(m);
+    }
+
+    // ---- Lighting ----
+    scene.add(new THREE.HemisphereLight(0xd9c2ff, 0x2a1822, 0.75));
+    const key = new THREE.DirectionalLight(0xffffff, 1.15); key.position.set(5, 16, 8);
+    key.castShadow = true; key.shadow.mapSize.set(1024, 1024);
+    key.shadow.camera.left = -28; key.shadow.camera.right = 28;
+    key.shadow.camera.top = 28; key.shadow.camera.bottom = -28; key.shadow.camera.far = 80;
+    scene.add(key);
+    const fill = new THREE.PointLight(0xe0556b, 0.7, 70); fill.position.set(-10, 7, -16); scene.add(fill);
+    const fill2 = new THREE.PointLight(0x6c8cff, 0.5, 70); fill2.position.set(11, 6, -20); scene.add(fill2);
+
+    // ---- Target factory ----
+    // A bullseye disc (concentric rings) on a small post, faces the player.
+    const RING_COLORS = [0xf2eef0, 0xe0556b, 0xf2eef0, 0xe0556b, 0xffd23f];
+    function makeTarget(radius, kind) {
+      const g = new THREE.Group();
+      // rings as flat cylinders stacked slightly in z
+      for (let r = 0; r < 5; r++) {
+        const rr = radius * (1 - r * 0.18);
+        const disc = new THREE.Mesh(new THREE.CircleGeometry(rr, 28),
+          new THREE.MeshStandardMaterial({ color: RING_COLORS[r], roughness: 0.5, metalness: 0.1,
+            emissive: new THREE.Color(RING_COLORS[r]).multiplyScalar(0.12) }));
+        disc.position.z = 0.012 * r; g.add(disc);
+      }
+      // rim
+      const rim = new THREE.Mesh(new THREE.TorusGeometry(radius, radius * 0.06, 8, 28),
+        new THREE.MeshStandardMaterial({ color: 0x2a1d22, metalness: 0.6, roughness: 0.4 }));
+      g.add(rim);
+      // glowing back-plate for bonus targets
+      if (kind === 'bonus') {
+        const halo = new THREE.Mesh(new THREE.CircleGeometry(radius * 1.3, 28),
+          new THREE.MeshBasicMaterial({ color: 0xffd23f, transparent: true, opacity: 0.22 }));
+        halo.position.z = -0.02; g.add(halo);
+      }
+      // post
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 2.4, 8),
+        new THREE.MeshStandardMaterial({ color: 0x3a2730, metalness: 0.5, roughness: 0.5 }));
+      post.position.y = -radius - 1.2; post.castShadow = true; g.add(post);
+      g.children.forEach(c => { c.castShadow = true; });
+      return g;
+    }
+
+    // ---- Game data ----
+    const ROUND_TIME = 45;            // total round time (seconds)
+    const targets = [];
+    let score, combo, comboTimer, bestCombo, shotsFired, shotsHit, running, paused, started;
+    let timeLeft, round, lastPause, spawnAcc;
+    let best = +(localStorage.getItem(BEST_KEY) || 0);
+
+    const $ = id => document.getElementById(id);
+    $('bestHud').textContent = best;
+    const scoreEl = $('score'), timeTxt = $('timeTxt'), timefill = $('timefill');
+    const comboEl = $('combo'), crossEl = $('cross'), popsEl = $('pops'), roundtag = $('roundtag');
+
+    function laneSpeed() { return 0.9 + round * 0.18; }   // units/sec, grows by round
+
+    function spawnTarget(forceLane) {
+      const lane = forceLane != null ? forceLane : (Math.floor(rand() * ROWS_Z.length));
+      const z = ROWS_Z[lane];
+      const dir = rand() < 0.5 ? 1 : -1;
+      const radius = rrange(0.55, 0.95) * (1 - lane * 0.12);   // far lanes a touch smaller
+      const bonus = rand() < 0.16;
+      const t = makeTarget(bonus ? radius * 0.78 : radius, bonus ? 'bonus' : 'normal');
+      const x = dir > 0 ? -19 : 19;
+      const y = 1.5 + radius + rrange(0, 1.2);
+      t.position.set(x, y, z);
+      t.userData = {
+        dir, radius: bonus ? radius * 0.78 : radius,
+        speed: laneSpeed() * (bonus ? 1.7 : 1) * rrange(0.85, 1.15),
+        pts: bonus ? 5 : (lane + 1),     // far lanes worth more; bonus worth most
+        bonus, bob: rand() * Math.PI * 2, wobble: rrange(0.0, 0.5),
+      };
+      scene.add(t); targets.push(t);
+    }
+
+    function clearTargets() { targets.splice(0).forEach(t => scene.remove(t)); }
+
+    function showRound() {
+      $('roundName').textContent = 'Round ' + round;
+      $('roundSub').textContent = round === 1 ? 'Hit the targets!' : 'Faster targets · more points';
+      roundtag.classList.add('show');
+      roundFlash = 1.3;
+    }
+    let roundFlash = 0;
+
+    function setCombo(n) {
+      combo = n;
+      if (combo >= 2) {
+        comboEl.textContent = 'x' + combo;
+        comboEl.classList.add('show');
+        comboTimer = 2.4;       // seconds before combo decays
+      } else {
+        comboEl.classList.remove('show');
+      }
+      if (combo > bestCombo) bestCombo = combo;
+    }
+
+    function spawnPop(text, color, sx, sy) {
+      const el = document.createElement('div');
+      el.className = 'pop'; el.textContent = text; el.style.color = color;
+      el.style.left = sx + 'px'; el.style.top = sy + 'px';
+      popsEl.appendChild(el);
+      setTimeout(() => el.remove(), 850);
+    }
+
+    function reset() {
+      clearTargets();
+      seed = 0x9e3779b1;
+      score = 0; combo = 1; comboTimer = 0; bestCombo = 1;
+      shotsFired = 0; shotsHit = 0;
+      running = true; paused = false; started = false; lastPause = null;
+      timeLeft = ROUND_TIME; round = 1; spawnAcc = 0;
+      yaw = 0; pitch = 0;
+      scoreEl.textContent = 0; timeTxt.textContent = ROUND_TIME;
+      timefill.style.transform = 'scaleX(1)';
+      comboEl.classList.remove('show');
+      $('over').classList.remove('gx-show');
+      $('title').textContent = 'Time!';
+      // seed the lanes with a few targets
+      for (let i = 0; i < ROWS_Z.length; i++) spawnTarget(i);
+      spawnTarget(); spawnTarget();
+      showRound();
+    }
+
+    // ---- Aim (drag) ----
+    onDrag(renderer.domElement, { move: ({ dx, dy }) => {
+      if (paused || !running) return;
+      yaw -= dx * 0.0040; pitch -= dy * 0.0040;
+      pitch = Math.max(-1.0, Math.min(1.0, pitch));
+    } });
+
+    // ---- Shooting ----
+    const ray = new THREE.Raycaster();
+    function fire() {
+      if (!running || paused) return;
+      crossEl.classList.add('kick');
+      setTimeout(() => crossEl.classList.remove('kick'), 80);
+      shotsFired++;
+      ray.setFromCamera({ x: 0, y: 0 }, camera);
+      const hit = ray.intersectObjects(targets, true)[0];
+      if (!hit) { setCombo(1); return; }     // a miss breaks the combo
+      let obj = hit.object;
+      while (obj.parent && targets.indexOf(obj) < 0) obj = obj.parent;
+      const i = targets.indexOf(obj); if (i < 0) { setCombo(1); return; }
+      const d = obj.userData;
+      shotsHit++;
+      setCombo(combo + 1);
+      const gained = d.pts * combo;
+      score += gained;
+      scoreEl.textContent = score;
+      burst(obj.position.clone(), d.bonus ? 0xffd23f : 0xe0556b);
+      // project hit point to screen for the floating score pop
+      const sp = obj.position.clone().project(camera);
+      const sx = (sp.x * 0.5 + 0.5) * innerWidth;
+      const sy = (-sp.y * 0.5 + 0.5) * innerHeight;
+      spawnPop('+' + gained, d.bonus ? '#ffd23f' : '#ffd2da', sx, sy);
+      scene.remove(obj); targets.splice(i, 1);
+      // keep a healthy field of targets
+      if (targets.length < 4 + Math.min(round, 4)) spawnTarget();
+    }
+    onTap(renderer.domElement, fire);
+
+    // ---- Particle bursts ----
+    const bursts = [];
+    const burstGeo = new THREE.SphereGeometry(0.1, 6, 6);
+    function burst(pos, color) {
+      for (let i = 0; i < 14; i++) {
+        const p = new THREE.Mesh(burstGeo, new THREE.MeshBasicMaterial({ color, transparent: true }));
+        p.position.copy(pos);
+        p.userData = { v: new THREE.Vector3((rand() - 0.5) * 0.45, (rand() - 0.5) * 0.45 + 0.1, (rand() - 0.5) * 0.45), life: 1 };
+        scene.add(p); bursts.push(p);
+      }
+    }
+    function stepBursts(dt) {
+      for (let i = bursts.length - 1; i >= 0; i--) {
+        const p = bursts[i];
+        p.position.addScaledVector(p.userData.v, dt * 60); p.userData.v.multiplyScalar(0.9);
+        p.userData.v.y -= dt * 0.5; p.userData.life -= dt * 1.7;
+        p.material.opacity = Math.max(0, p.userData.life);
+        p.scale.setScalar(Math.max(0.1, p.userData.life));
+        if (p.userData.life <= 0) { scene.remove(p); bursts.splice(i, 1); }
+      }
+    }
+
+    // ---- Pause ----
+    function togglePause() {
+      if (!running) return;
+      paused = !paused;
+      $('title').textContent = 'Paused';
+      // reuse the modal to show pause; populate the rows with live stats
+      if (paused) {
+        $('finalScore').textContent = score;
+        $('finalCombo').textContent = 'x' + bestCombo;
+        $('finalAcc').textContent = (shotsFired ? Math.round(shotsHit / shotsFired * 100) : 0) + '%';
+        $('best').textContent = best;
+        $('newbest').textContent = '';
+        $('over').classList.add('gx-show');
+      } else {
+        $('over').classList.remove('gx-show');
+      }
+    }
+
+    // ---- Keyboard ----
+    const GAME_KEYS = ['arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'w', 'a', 's', 'd', ' ', 'enter', 'r', 'p'];
+    const keys = new Set();
+    addEventListener('keydown', e => {
+      const k = e.key.toLowerCase();
+      if (GAME_KEYS.includes(k)) e.preventDefault();
+      if (k === 'r') { reset(); return; }
+      if (k === 'p') { togglePause(); return; }
+      if (k === ' ' || k === 'enter') { fire(); return; }
+      keys.add(k);
+    });
+    addEventListener('keyup', e => keys.delete(e.key.toLowerCase()));
+    function keyboardAim(dt) {
+      const sp = 1.5 * dt;
+      if (keys.has('arrowleft') || keys.has('a')) yaw += sp;
+      if (keys.has('arrowright') || keys.has('d')) yaw -= sp;
+      if (keys.has('arrowup') || keys.has('w')) pitch += sp;
+      if (keys.has('arrowdown') || keys.has('s')) pitch -= sp;
+      pitch = Math.max(-1.0, Math.min(1.0, pitch));
+    }
+
+    // ---- Resize ----
+    function resize() {
+      const w = innerWidth, h = innerHeight;
+      renderer.setSize(w, h);
+      camera.aspect = w / h; camera.updateProjectionMatrix();
+    }
+    addEventListener('resize', resize); resize();
+
+    // ---- Game over ----
+    function end() {
+      running = false;
+      const isBest = score > best;
+      if (isBest) { best = score; localStorage.setItem(BEST_KEY, best); $('bestHud').textContent = best; }
+      $('title').textContent = 'Time!';
+      $('finalScore').textContent = score;
+      $('finalCombo').textContent = 'x' + bestCombo;
+      $('finalAcc').textContent = (shotsFired ? Math.round(shotsHit / shotsFired * 100) : 0) + '%';
+      $('best').textContent = best;
+      $('newbest').textContent = isBest ? '★ New best!' : '';
+      $('over').classList.add('gx-show');
+    }
+    $('again').onclick = reset;
+
+    // ---- Main loop ----
+    let prev = 0;
+    function animate(ts) {
+      const now = ts / 1000;
+      const dt = prev ? Math.min(0.05, now - prev) : 0.016; prev = now;
+      if (paused) { if (lastPause == null) lastPause = ts; }
+      else lastPause = null;
+
+      if (running && !paused) {
+        keyboardAim(dt);
+
+        // countdown
+        timeLeft = Math.max(0, timeLeft - dt);
+        timeTxt.textContent = Math.ceil(timeLeft);
+        timefill.style.transform = 'scaleX(' + (timeLeft / ROUND_TIME) + ')';
+        // advance round every 15s of remaining play for escalating difficulty
+        const elapsed = ROUND_TIME - timeLeft;
+        const wantRound = 1 + Math.floor(elapsed / 15);
+        if (wantRound > round) { round = wantRound; showRound(); }
+        if (timeLeft <= 0) { end(); }
+
+        // combo decay
+        if (comboTimer > 0) { comboTimer -= dt; if (comboTimer <= 0) setCombo(1); }
+
+        // move targets along their lanes; recycle when off-screen
+        for (let i = targets.length - 1; i >= 0; i--) {
+          const t = targets[i], d = t.userData;
+          t.position.x += d.dir * d.speed * dt;
+          d.bob += dt * 2;
+          t.position.y += Math.sin(d.bob) * d.wobble * dt;
+          t.rotation.z += dt * 0.4 * d.dir;
+          // billboard the disc toward the camera (yaw only) for readability
+          t.rotation.y = 0;
+          if ((d.dir > 0 && t.position.x > 20) || (d.dir < 0 && t.position.x < -20)) {
+            scene.remove(t); targets.splice(i, 1);
+          }
+        }
+
+        // steady spawn to keep lanes populated
+        spawnAcc += dt;
+        const spawnEvery = Math.max(0.5, 1.2 - round * 0.12);
+        if (spawnAcc >= spawnEvery && targets.length < 9) { spawnAcc = 0; spawnTarget(); }
+        if (targets.length === 0) spawnTarget();
+
+        stepBursts(dt);
+
+        if (roundFlash > 0) { roundFlash -= dt; if (roundFlash <= 0) roundtag.classList.remove('show'); }
+      }
+
+      camera.rotation.set(0, 0, 0, 'YXZ');
+      camera.rotateY(yaw); camera.rotateX(pitch);
+      renderer.render(scene, camera);
+      requestAnimationFrame(animate);
+    }
+
+    reset();
+    requestAnimationFrame(animate);
+  </script>
+</body>
+</html>

@@ -3,56 +3,62 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-  <meta name="theme-color" content="#0e0f13">
+  <meta name="theme-color" content="#07080c">
   <title>Drone Hunt — Gamf</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../gamf.css">
   <style>
-    *{box-sizing:border-box} html,body{margin:0;height:100%;overflow:hidden;background:#0e0f13;color:#f2f3f5;
-      font-family:system-ui,sans-serif;-webkit-tap-highlight-color:transparent;touch-action:none;
-      -webkit-user-select:none;user-select:none}
-    .hud{position:fixed;top:env(safe-area-inset-top);left:0;right:0;display:flex;gap:14px;
-      padding:12px 16px;align-items:center;pointer-events:none;z-index:2;font-weight:700}
-    .hud a{color:#6c8cff;text-decoration:none;font-size:.9rem;pointer-events:auto;font-weight:400}
-    .hud .lives{margin-left:auto;color:#e0556b;letter-spacing:1px}
-    .hud .score{min-width:64px;text-align:right}
-    .hud .best{min-width:72px;text-align:right;color:#5fd1a6;font-weight:600}
-    .wavetag{position:fixed;top:calc(env(safe-area-inset-top) + 48px);left:0;right:0;text-align:center;
-      z-index:2;pointer-events:none;color:#6c8cff;font-weight:800;font-size:1.4rem;opacity:0;transition:opacity .3s}
+    body { --gx-accent: #e0556b; }
+    html,body{height:100%;overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none}
+    body{background:#0e0f13}
+    .wavetag{position:fixed;top:calc(env(safe-area-inset-top) + 52px);left:0;right:0;text-align:center;
+      z-index:4;pointer-events:none;color:var(--gx-brand-2);font-family:var(--gx-font-display);font-weight:700;
+      font-size:1.4rem;opacity:0;transition:opacity .3s}
     .wavetag.show{opacity:1}
-    .cross{position:fixed;top:50%;left:50%;width:26px;height:26px;margin:-13px 0 0 -13px;z-index:2;pointer-events:none;
+    .cross{position:fixed;top:50%;left:50%;width:26px;height:26px;margin:-13px 0 0 -13px;z-index:4;pointer-events:none;
       filter:drop-shadow(0 0 5px rgba(224,85,107,.85))}
     .cross::before,.cross::after{content:"";position:absolute;background:#ffd2da;opacity:.92}
     .cross::before{left:12px;top:0;width:2px;height:26px}.cross::after{top:12px;left:0;height:2px;width:26px}
     .cross span{position:absolute;inset:0;border:2px solid rgba(224,85,107,.55);border-radius:50%}
-    .hint{position:fixed;bottom:calc(env(safe-area-inset-bottom) + 14px);left:0;right:0;text-align:center;
-      color:#8a91a3;font-size:.82rem;z-index:2;pointer-events:none}
-    .pausetag{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:3;font-weight:800;
-      font-size:1.4rem;color:#cdd6ee;letter-spacing:.1em;display:none}
+    .pausetag{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:5;
+      font-family:var(--gx-font-display);font-weight:700;font-size:1.4rem;color:#cdd6ee;letter-spacing:.1em;display:none}
     .pausetag.show{display:block}
-    .hurt{position:fixed;inset:0;z-index:2;pointer-events:none;background:radial-gradient(circle,transparent 55%,rgba(224,85,107,.45));
+    .hurt{position:fixed;inset:0;z-index:4;pointer-events:none;background:radial-gradient(circle,transparent 55%,rgba(224,85,107,.45));
       opacity:0;transition:opacity .12s}
     .hurt.show{opacity:1}
-    .over{position:fixed;inset:0;display:none;place-items:center;background:rgba(8,9,13,.84);z-index:3;text-align:center}
-    .over.show{display:grid} .over h2{margin:0 0 6px;font-size:1.9rem;color:#e0556b}
-    .over .sub{color:#aab2c6} .over .newbest{color:#5fd1a6;font-weight:700;margin-top:6px;min-height:1.1em}
-    .over button{all:unset;margin-top:16px;color:#0e0f13;
-      background:linear-gradient(135deg,#e0556b,#6c8cff);font-weight:700;padding:12px 24px;border-radius:12px;cursor:pointer}
     canvas{display:block;width:100%;height:100%;touch-action:none}
   </style>
 </head>
-<body>
-  <div class="hud"><a href="../../">← FPS</a>
-    <span class="lives" id="lives">♥♥♥</span>
-    <span class="score">Score: <b id="score">0</b></span>
-    <span class="best">Best: <b id="bestHud">0</b></span></div>
+<body class="gx">
+  <script src="../../gamf-icons.js"></script>
+  <header class="gx-hud">
+    <a class="gx-hud__back" href="../../"><svg class="gx-ico"><use href="#i-back"/></svg> FPS</a>
+    <span class="gx-hud__spacer"></span>
+    <span class="gx-pill" id="lives" style="color:var(--gx-danger);letter-spacing:1px">♥♥♥</span>
+    <span class="gx-pill">Score <b id="score">0</b></span>
+    <span class="gx-pill gx-pill--best"><svg class="gx-ico" style="width:1em;height:1em"><use href="#i-trophy"/></svg> <b id="bestHud">0</b></span>
+  </header>
   <div class="wavetag" id="wavetag">Wave 1</div>
   <div class="cross"><span></span></div>
-  <div class="hint">drag / arrows to aim · tap / space to fire · P pause · R restart</div>
+  <div class="gx-hint">
+    <span class="gx-hint__chip"><svg class="gx-ico"><use href="#i-touch"/></svg> Drag / arrows to aim</span>
+    <span class="gx-hint__chip"><svg class="gx-ico"><use href="#i-touch"/></svg> Tap / space to fire</span>
+    <span class="gx-hint__chip"><svg class="gx-ico"><use href="#i-pause"/></svg> P pause · R restart</span>
+  </div>
   <div class="pausetag" id="pausetag">PAUSED</div>
   <div class="hurt" id="hurt"></div>
-  <div class="over" id="over"><div><h2>Breached!</h2>
-    <div class="sub">Score <b id="finalScore">0</b> · Wave <b id="finalWave">1</b> · Best <b id="best">0</b></div>
-    <div class="newbest" id="newbest"></div>
-    <button id="again">Play again</button></div></div>
+  <div class="gx-modal" id="over">
+    <div class="gx-modal__card">
+      <h2 class="gx-modal__title" style="color:var(--gx-danger)">Breached!</h2>
+      <div class="gx-modal__row"><span>Score</span> <b id="finalScore">0</b></div>
+      <div class="gx-modal__row"><span>Wave</span> <b id="finalWave">1</b></div>
+      <div class="gx-modal__row"><span>Best</span> <b id="best">0</b></div>
+      <div class="gx-modal__new" id="newbest"></div>
+      <button class="gx-btn gx-btn--primary" id="again"><svg class="gx-ico"><use href="#i-restart"/></svg> Play again</button>
+    </div>
+  </div>
   <script type="importmap">
     { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
   </script>
@@ -183,7 +189,7 @@
       score=0; lives=3; wave=1; running=true; paused=false; started=false; lastPause=null;
       scoreEl.textContent=0; renderLives();
       document.getElementById('pausetag').classList.remove('show');
-      document.getElementById('over').classList.remove('show');
+      document.getElementById('over').classList.remove('gx-show');
       startWave();
     }
 
@@ -238,7 +244,7 @@
       document.getElementById('finalWave').textContent=wave;
       document.getElementById('best').textContent=best;
       document.getElementById('newbest').textContent=isBest?'★ New best!':'';
-      document.getElementById('over').classList.add('show'); }
+      document.getElementById('over').classList.add('gx-show'); }
     document.getElementById('again').onclick=reset;
 
     let prev=0;

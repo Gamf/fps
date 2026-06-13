@@ -3,47 +3,52 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-  <meta name="theme-color" content="#0e0f13">
+  <meta name="theme-color" content="#07080c">
   <title>Wave Range — Gamf</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../gamf.css">
   <style>
-    *{box-sizing:border-box} html,body{margin:0;height:100%;overflow:hidden;background:#0e0f13;color:#f2f3f5;
-      font-family:system-ui,sans-serif;-webkit-tap-highlight-color:transparent;touch-action:none;
-      -webkit-user-select:none;user-select:none}
-    .hud{position:fixed;top:env(safe-area-inset-top);left:0;right:0;display:flex;gap:16px;
-      padding:12px 16px;align-items:center;pointer-events:none;z-index:2;font-weight:700}
-    .hud a{color:#6c8cff;text-decoration:none;font-size:.9rem;pointer-events:auto;font-weight:400}
-    .hud .time{margin-left:auto} .hud .hits{min-width:62px;text-align:right}
-    .hud .best{min-width:70px;text-align:right;color:#5fd1a6;font-weight:600}
-    .cross{position:fixed;top:50%;left:50%;width:26px;height:26px;margin:-13px 0 0 -13px;z-index:2;pointer-events:none;
+    body { --gx-accent: #e0556b; }
+    html,body{height:100%;overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none}
+    body{background:#0e0f13}
+    .cross{position:fixed;top:50%;left:50%;width:26px;height:26px;margin:-13px 0 0 -13px;z-index:4;pointer-events:none;
       filter:drop-shadow(0 0 4px rgba(96,140,255,.8))}
     .cross::before,.cross::after{content:"";position:absolute;background:#bcd0ff;opacity:.92}
     .cross::before{left:12px;top:0;width:2px;height:26px}.cross::after{top:12px;left:0;height:2px;width:26px}
     .cross span{position:absolute;inset:0;border:2px solid rgba(188,208,255,.55);border-radius:50%}
-    .hint{position:fixed;bottom:calc(env(safe-area-inset-bottom) + 14px);left:0;right:0;text-align:center;
-      color:#8a91a3;font-size:.82rem;z-index:2;pointer-events:none}
-    .pausetag{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:3;font-weight:800;
-      font-size:1.4rem;color:#cdd6ee;letter-spacing:.1em;display:none}
+    .pausetag{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:5;
+      font-family:var(--gx-font-display);font-weight:700;font-size:1.4rem;color:#cdd6ee;letter-spacing:.1em;display:none}
     .pausetag.show{display:block}
-    .over{position:fixed;inset:0;display:none;place-items:center;background:rgba(8,9,13,.82);z-index:3;text-align:center}
-    .over.show{display:grid} .over h2{margin:0 0 6px;font-size:1.8rem}
-    .over .sub{color:#aab2c6;margin-bottom:2px}
-    .over .newbest{color:#5fd1a6;font-weight:700;margin-top:6px;min-height:1.1em}
-    .over button{all:unset;margin-top:16px;color:#0e0f13;
-      background:linear-gradient(135deg,#6c8cff,#5fd1a6);font-weight:700;padding:12px 24px;border-radius:12px;cursor:pointer}
     canvas{display:block;width:100%;height:100%;touch-action:none}
   </style>
 </head>
-<body>
-  <div class="hud"><a href="../../">← FPS</a><span class="time">⏱ <span id="time">30</span></span>
-    <span class="hits">Hits: <span id="hits">0</span></span>
-    <span class="best">Best: <span id="bestHud">0</span></span></div>
+<body class="gx">
+  <script src="../../gamf-icons.js"></script>
+  <header class="gx-hud">
+    <a class="gx-hud__back" href="../../"><svg class="gx-ico"><use href="#i-back"/></svg> FPS</a>
+    <span class="gx-hud__spacer"></span>
+    <span class="gx-pill"><svg class="gx-ico" style="width:1em;height:1em"><use href="#i-pause"/></svg> <span id="time">30</span>s</span>
+    <span class="gx-pill">Hits <b id="hits">0</b></span>
+    <span class="gx-pill gx-pill--best"><svg class="gx-ico" style="width:1em;height:1em"><use href="#i-trophy"/></svg> <b id="bestHud">0</b></span>
+  </header>
   <div class="cross"><span></span></div>
-  <div class="hint">drag / arrows to aim · tap / space to shoot · P pause · R restart</div>
+  <div class="gx-hint">
+    <span class="gx-hint__chip"><svg class="gx-ico"><use href="#i-touch"/></svg> Drag / arrows to aim</span>
+    <span class="gx-hint__chip"><svg class="gx-ico"><use href="#i-touch"/></svg> Tap / space to shoot</span>
+    <span class="gx-hint__chip"><svg class="gx-ico"><use href="#i-pause"/></svg> P pause · R restart</span>
+  </div>
   <div class="pausetag" id="pausetag">PAUSED</div>
-  <div class="over" id="over"><div><h2 id="title">Time!</h2>
-    <div class="sub">Hits <b id="finalScore">0</b> · Best <b id="best">0</b></div>
-    <div class="newbest" id="newbest"></div>
-    <button id="again">Play again</button></div></div>
+  <div class="gx-modal" id="over">
+    <div class="gx-modal__card">
+      <h2 class="gx-modal__title" id="title">Time!</h2>
+      <div class="gx-modal__row"><span>Hits</span> <b id="finalScore">0</b></div>
+      <div class="gx-modal__row"><span>Best</span> <b id="best">0</b></div>
+      <div class="gx-modal__new" id="newbest"></div>
+      <button class="gx-btn gx-btn--primary" id="again"><svg class="gx-ico"><use href="#i-restart"/></svg> Play again</button>
+    </div>
+  </div>
   <script type="importmap">
     { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
   </script>
@@ -133,7 +138,7 @@
       hits=0; timeLeft=DURATION; running=true; paused=false; tStart=null; pauseAcc=0; lastPause=null;
       document.getElementById('hits').textContent=0; document.getElementById('time').textContent=DURATION;
       document.getElementById('pausetag').classList.remove('show');
-      document.getElementById('over').classList.remove('show');
+      document.getElementById('over').classList.remove('gx-show');
     }
 
     onDrag(renderer.domElement,{ move:({dx,dy})=>{ if(paused) return; yaw-=dx*0.004; pitch-=dy*0.004;
@@ -183,7 +188,7 @@
       document.getElementById('finalScore').textContent=hits;
       document.getElementById('best').textContent=best;
       document.getElementById('newbest').textContent=isBest?'★ New best!':'';
-      document.getElementById('over').classList.add('show'); }
+      document.getElementById('over').classList.add('gx-show'); }
     document.getElementById('again').onclick=reset;
 
     let prev=0;
