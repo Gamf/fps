@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#15110e">
+  <title>Sniper — Gamf</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../gamf.css">
+  <style>
+    body { --gx-accent: #d8412b; }
+    html,body{height:100%;overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none}
+    body{background:#15110e}
+    canvas{display:block;width:100%;height:100%;touch-action:none}
+
+    /* hip-fire reticle (visible when NOT scoped) */
+    .reticle{position:fixed;top:50%;left:50%;width:46px;height:46px;margin:-23px 0 0 -23px;z-index:4;pointer-events:none;opacity:1;transition:opacity .18s ease}
+    .reticle.hidden{opacity:0}
+    .reticle::before,.reticle::after{content:"";position:absolute;background:#f4ede1;opacity:.55}
+    .reticle::before{left:22px;top:0;width:2px;height:46px}
+    .reticle::after{top:22px;left:0;height:2px;width:46px}
+    .reticle span{position:absolute;inset:14px;border:2px solid rgba(232,162,58,.7);border-radius:50%}
+
+    /* scope overlay (visible WHILE scoped) — black vignette donut + crosshair + ticks */
+    .scope{position:fixed;inset:0;z-index:4;pointer-events:none;opacity:0;transition:opacity .14s ease}
+    .scope.show{opacity:1}
+    /* black mask around a circular eyepiece */
+    .scope__mask{position:absolute;inset:0;
+      background:radial-gradient(circle at 50% 50%,
+        transparent 0,
+        transparent calc(min(44vw,44vh) - 2px),
+        #0b0805 calc(min(44vw,44vh)),
+        #0b0805 100%)}
+    .scope__ring{position:absolute;top:50%;left:50%;width:min(88vw,88vh);height:min(88vw,88vh);
+      margin:calc(min(-44vw,-44vh)) 0 0 calc(min(-44vw,-44vh));border-radius:50%;
+      border:3px solid #2a2018;box-shadow:0 0 0 2px #000 inset}
+    .scope__cross{position:absolute;top:50%;left:50%;width:min(80vw,80vh);height:min(80vw,80vh);
+      margin:calc(min(-40vw,-40vh)) 0 0 calc(min(-40vw,-40vh));pointer-events:none}
+    /* mil-dot crosshair lines */
+    .scope__cross::before,.scope__cross::after{content:"";position:absolute;background:#1a120c;opacity:.92}
+    .scope__cross::before{left:50%;top:0;width:1.5px;height:100%;margin-left:-.75px}
+    .scope__cross::after{top:50%;left:0;height:1.5px;width:100%;margin-top:-.75px}
+    .scope__dot{position:absolute;top:50%;left:50%;width:7px;height:7px;margin:-3.5px 0 0 -3.5px;border:1.5px solid #d8412b;border-radius:50%}
+    .scope__readout{position:absolute;left:50%;bottom:calc(env(safe-area-inset-bottom) + 76px);transform:translateX(-50%);
+      font-family:var(--gx-font-mono);font-size:12px;letter-spacing:2px;color:var(--gx-amber);text-transform:uppercase;opacity:.9}
+
+    /* zoom-charge ring on the right edge (how far you've squeezed the scope) */
+    .breath{position:fixed;right:14px;top:50%;transform:translateY(-50%);z-index:4;pointer-events:none;
+      width:8px;height:120px;border:1px solid var(--gx-line-2);border-radius:5px;overflow:hidden;
+      background:color-mix(in srgb,var(--gx-screen) 70%,transparent)}
+    .breath i{position:absolute;left:0;right:0;bottom:0;height:0%;background:var(--gx-amber);transition:height .08s linear}
+    .breath.low i{background:var(--gx-red)}
+
+    /* big centre call-out: hit / miss / bullseye / ready */
+    .callout{position:fixed;top:30%;left:50%;transform:translate(-50%,-50%);z-index:5;text-align:center;
+      font-family:var(--gx-font-display);font-weight:400;letter-spacing:1px;pointer-events:none;
+      text-shadow:0 4px 18px rgba(0,0,0,.7);transition:opacity .12s;opacity:0}
+    .callout.show{opacity:1}
+    .callout .big{font-size:clamp(2rem,10vw,3.6rem);line-height:1;text-transform:uppercase}
+    .callout .sub{font-family:var(--gx-font-mono);font-size:13px;letter-spacing:1px;color:var(--gx-text-2);margin-top:8px;text-transform:uppercase}
+    .callout.good .big{color:#e8a23a}
+    .callout.bull .big{color:#5fe0a0}
+    .callout.bad .big{color:#d8412b}
+    .callout.ready .big{color:#f4ede1}
+    @keyframes pop{from{transform:translate(-50%,-50%) scale(.7);opacity:.2}to{transform:translate(-50%,-50%) scale(1);opacity:1}}
+    .callout.show .big{animation:pop .22s ease}
+
+    .pausetag{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:5;
+      font-family:var(--gx-font-display);font-size:1.6rem;color:#e6d4ba;letter-spacing:.16em;display:none}
+    .pausetag.show{display:block}
+  </style>
+</head>
+<body class="gx">
+  <script src="../../gamf-icons.js"></script>
+  <header class="gx-hud">
+    <a class="gx-hud__back" href="../../"><svg class="gx-ico"><use href="#i-back"/></svg> FPS</a>
+    <span class="gx-hud__spacer"></span>
+    <span class="gx-pill">ACC <b id="acc">100%</b></span>
+    <span class="gx-pill">Score <b id="score">0</b></span>
+    <span class="gx-pill gx-pill--best"><svg class="gx-ico" style="width:1em;height:1em"><use href="#i-trophy"/></svg> <b id="bestHud">0</b></span>
+  </header>
+
+  <div class="reticle" id="reticle"><span></span></div>
+
+  <div class="scope" id="scope">
+    <div class="scope__mask"></div>
+    <div class="scope__ring"></div>
+    <div class="scope__cross"></div>
+    <div class="scope__dot"></div>
+    <div class="scope__readout" id="readout">×6.0 · 0m</div>
+  </div>
+
+  <div class="breath" id="breath"><i id="breathFill"></i></div>
+
+  <div class="callout ready show" id="callout"><div class="big" id="calloutBig">SNIPER</div><div class="sub" id="calloutSub">Hold to scope · tap to fire</div></div>
+
+  <div class="gx-hint">
+    <span class="gx-hint__chip"><svg class="gx-ico"><use href="#i-target"/></svg> Hold / arrows to zoom</span>
+    <span class="gx-hint__chip"><svg class="gx-ico"><use href="#i-bolt"/></svg> Tap / Space to fire</span>
+    <span class="gx-hint__chip"><svg class="gx-ico"><use href="#i-pause"/></svg> P pause · R restart</span>
+  </div>
+
+  <div class="pausetag" id="pausetag">PAUSED</div>
+
+  <div class="gx-modal" id="over">
+    <div class="gx-modal__card">
+      <h2 class="gx-modal__title" id="title">Range over</h2>
+      <div class="gx-modal__row"><span>Score</span> <b id="finalScore">0</b></div>
+      <div class="gx-modal__row"><span>Hits</span> <b id="finalHits">0</b></div>
+      <div class="gx-modal__row"><span>Accuracy</span> <b id="finalAcc">0%</b></div>
+      <div class="gx-modal__row"><span>Best</span> <b id="best">0</b></div>
+      <div class="gx-modal__new" id="newbest"></div>
+      <button class="gx-btn gx-btn--primary" id="again"><svg class="gx-ico"><use href="#i-restart"/></svg> Shoot again</button>
+    </div>
+  </div>
+
+  <script type="importmap">
+    { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
+  </script>
+  <script type="module">
+    import * as THREE from 'three';
+    import { onDrag, onTap } from './touch.js';
+
+    const SLUG='sniper', BEST_KEY='gamf-fps-'+SLUG+'-best';
+
+    /* ---------- seeded LCG (no Math.random / Date) ---------- */
+    let seed=0x51a3c7d;
+    const rnd=()=>(seed=(seed*1103515245+12345)&0x7fffffff)/0x7fffffff;
+    const range=(a,b)=>a+(b-a)*rnd();
+    const irange=(a,b)=>a+Math.floor(rnd()*(b-a+1));
+
+    /* ---------- renderer / scene ---------- */
+    const renderer=new THREE.WebGLRenderer({antialias:true});
+    renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));
+    renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+    document.body.appendChild(renderer.domElement);
+
+    const scene=new THREE.Scene();
+    scene.fog=new THREE.Fog(0x2a1f16,70,360);
+
+    // hazy dawn sky over a long range
+    const skyGeo=new THREE.SphereGeometry(420,28,18);
+    const skyMat=new THREE.ShaderMaterial({side:THREE.BackSide,uniforms:{
+      top:{value:new THREE.Color(0x241a2e)},mid:{value:new THREE.Color(0x6e3a28)},bot:{value:new THREE.Color(0xd89a52)}},
+      vertexShader:`varying vec3 v; void main(){ v=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);} `,
+      fragmentShader:`varying vec3 v; uniform vec3 top; uniform vec3 mid; uniform vec3 bot;
+        void main(){ float h=clamp((normalize(v).y+0.12)/1.0,0.0,1.0);
+          vec3 c = h<0.4 ? mix(bot,mid,h/0.4) : mix(mid,top,(h-0.4)/0.6);
+          gl_FragColor=vec4(c,1.0);} `});
+    scene.add(new THREE.Mesh(skyGeo,skyMat));
+
+    const BASE_FOV=68, ZOOM_FOV=11;
+    const camera=new THREE.PerspectiveCamera(BASE_FOV,1,0.1,500);
+    camera.position.set(0,2.0,0);
+    let yaw=0, pitch=-0.03;
+
+    // long desert valley floor
+    const floor=new THREE.Mesh(new THREE.PlaneGeometry(800,800,1,1),
+      new THREE.MeshStandardMaterial({color:0x6a4327,roughness:1,metalness:0}));
+    floor.rotation.x=-Math.PI/2; floor.receiveShadow=true; scene.add(floor);
+    const grid=new THREE.GridHelper(800,160,0x7c5230,0x53381f); grid.position.y=0.02;
+    grid.material.transparent=true; grid.material.opacity=0.18; scene.add(grid);
+
+    // distant ridge silhouettes lining the valley
+    const ridgeMat=new THREE.MeshStandardMaterial({color:0x32200f,roughness:1});
+    for(let i=0;i<26;i++){
+      const w=range(14,40), h=range(10,40);
+      const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,8),ridgeMat);
+      const side=rnd()<0.5?-1:1;
+      m.position.set(side*range(34,90),h/2-2,-range(60,330));
+      m.rotation.y=range(-0.4,0.4);
+      scene.add(m);
+    }
+    // a few scattered rocks / cover near the firing line for depth
+    const rockMat=new THREE.MeshStandardMaterial({color:0x4a3220,roughness:1});
+    for(let i=0;i<14;i++){
+      const s=range(1.2,3.4);
+      const r=new THREE.Mesh(new THREE.DodecahedronGeometry(s,0),rockMat);
+      r.position.set(range(-50,50),s*0.4,-range(20,160));
+      r.rotation.set(range(0,3),range(0,3),range(0,3));
+      r.castShadow=true; r.receiveShadow=true; scene.add(r);
+    }
+
+    // lights — warm low key + cool fill
+    scene.add(new THREE.HemisphereLight(0xffd9a8,0x301826,0.75));
+    const dl=new THREE.DirectionalLight(0xffc070,1.2); dl.position.set(-30,40,-10);
+    dl.castShadow=true; dl.shadow.mapSize.set(1024,1024);
+    dl.shadow.camera.left=-60; dl.shadow.camera.right=60; dl.shadow.camera.top=60; dl.shadow.camera.bottom=-60;
+    dl.shadow.camera.far=240; scene.add(dl);
+
+    /* ---------- pop-up targets at varied range ---------- */
+    // A target = bullseye disc on a stake. They pop up, hold a window, then drop.
+    const NUM=6;
+    const targets=[];
+    const ringR=[0.92,0.66,0.40,0.18];                 // bullseye band radii
+    const ringHex=[0xf4ede1,0xd8412b,0xf4ede1,0xe8a23a];
+    function makeTarget(){
+      const g=new THREE.Group();
+      // stake
+      const stake=new THREE.Mesh(new THREE.BoxGeometry(0.16,2.2,0.16),
+        new THREE.MeshStandardMaterial({color:0x3a2818,roughness:1}));
+      stake.position.y=1.1; stake.castShadow=true; g.add(stake);
+      // disc face (concentric rings) — slight z offset so they layer cleanly
+      const faceMat=new THREE.MeshStandardMaterial({color:0x241712,roughness:0.85});
+      const back=new THREE.Mesh(new THREE.CircleGeometry(1.0,40),faceMat);
+      back.position.set(0,2.9,0); g.add(back);
+      const rings=[];
+      for(let r=0;r<ringR.length;r++){
+        const m=new THREE.Mesh(new THREE.CircleGeometry(ringR[r],36),
+          new THREE.MeshStandardMaterial({color:ringHex[r],roughness:0.7,emissive:0x000000}));
+        m.position.set(0,2.9,0.01+r*0.01); g.add(m); rings.push(m);
+      }
+      // a "hit core" mesh used purely as the raycast picker (whole disc)
+      const pick=new THREE.Mesh(new THREE.CircleGeometry(1.0,8),
+        new THREE.MeshBasicMaterial({visible:false}));
+      pick.position.set(0,2.9,0.06); g.add(pick);
+      scene.add(g);
+      const data={group:g,rings,pick,alive:false,state:'down',t:0,baseY:0,life:0,dist:0};
+      g.userData=data;
+      targets.push(data);
+      return data;
+    }
+    for(let i=0;i<NUM;i++) makeTarget();
+
+    function placeTarget(t){
+      // pick a distance band and a lateral angle within view
+      t.dist=range(45,260);
+      const lateral=range(-0.55,0.55);                 // radians off centre
+      const x=Math.sin(lateral)*t.dist;
+      const z=-Math.cos(lateral)*t.dist;
+      t.group.position.set(x,0,z);
+      t.group.rotation.y=Math.atan2(-x,-z)+Math.PI;    // face the shooter
+      t.baseY=0;
+      // farther targets are worth more but live shorter — risk/reward
+      const far=(t.dist-45)/215;                        // 0..1
+      t.life=range(4.2,5.6)-far*2.0-Math.min(2.2,wave*0.18);
+      t.life=Math.max(1.4,t.life);
+      t.state='rising'; t.t=0; t.alive=true;
+      t.group.visible=true;
+      setHit(t,false);
+    }
+    function setHit(t,on){
+      const e=on?0x3a1208:0x000000;
+      for(const r of t.rings) r.material.emissive.setHex(e);
+    }
+    function retire(t){ t.alive=false; t.state='down'; t.group.visible=false; }
+
+    /* ---------- particle bursts (dust / splinter) ---------- */
+    const bursts=[];
+    const burstGeo=new THREE.SphereGeometry(0.12,6,6);
+    function burst(pos,hex,n=14,spread=0.5){
+      for(let i=0;i<n;i++){
+        const p=new THREE.Mesh(burstGeo,new THREE.MeshBasicMaterial({color:hex,transparent:true}));
+        p.position.copy(pos);
+        p.userData={v:new THREE.Vector3(range(-spread,spread),range(0,spread*1.2),range(-spread,spread)),life:1};
+        scene.add(p); bursts.push(p);
+      }
+    }
+    function stepBursts(dt){
+      for(let i=bursts.length-1;i>=0;i--){ const p=bursts[i];
+        p.position.addScaledVector(p.userData.v,dt*30);
+        p.userData.v.y-=dt*1.2; p.userData.v.multiplyScalar(0.93);
+        p.userData.life-=dt*1.6; p.material.opacity=Math.max(0,p.userData.life);
+        p.scale.setScalar(Math.max(0.1,p.userData.life));
+        if(p.userData.life<=0){ scene.remove(p); bursts.splice(i,1); }
+      }
+    }
+
+    /* ---------- HUD elements ---------- */
+    const els={score:document.getElementById('score'),acc:document.getElementById('acc'),
+      best:document.getElementById('best'),bestHud:document.getElementById('bestHud'),
+      finalScore:document.getElementById('finalScore'),finalHits:document.getElementById('finalHits'),
+      finalAcc:document.getElementById('finalAcc'),newbest:document.getElementById('newbest'),
+      over:document.getElementById('over'),title:document.getElementById('title'),
+      callout:document.getElementById('callout'),calloutBig:document.getElementById('calloutBig'),
+      calloutSub:document.getElementById('calloutSub'),pausetag:document.getElementById('pausetag'),
+      scope:document.getElementById('scope'),reticle:document.getElementById('reticle'),
+      readout:document.getElementById('readout'),breath:document.getElementById('breath'),
+      breathFill:document.getElementById('breathFill')};
+
+    let best=+(localStorage.getItem(BEST_KEY)||0);
+    els.bestHud.textContent=best; els.best.textContent=best;
+
+    /* ---------- game state ---------- */
+    const MAX_MISS=5;                                   // missed (dropped) targets allowed
+    let score=0, hits=0, shots=0, missed=0, wave=0;
+    let running=false, paused=false, started=false;
+    let zoom=0;                                          // 0..1 scope charge
+    let zooming=false;                                  // pointer/key currently held
+    let spawnTimer=0, spawnGap=1.6;
+    let calloutT=0;
+
+    function updAcc(){
+      const a=shots? Math.round(hits/shots*100):100;
+      els.acc.textContent=a+'%';
+      return a;
+    }
+    function setCallout(cls,big,sub,hold=0.9){
+      els.callout.className='callout show '+cls;
+      els.calloutBig.textContent=big; els.calloutSub.textContent=sub||'';
+      calloutT=hold;
+    }
+    function clearCallout(){ els.callout.className='callout'; }
+
+    function reset(){
+      seed=0x51a3c7d;
+      score=0; hits=0; shots=0; missed=0; wave=0;
+      zoom=0; zooming=false; spawnTimer=0; spawnGap=1.6;
+      yaw=0; pitch=-0.03;
+      targets.forEach(retire);
+      running=true; paused=false; started=true;
+      els.score.textContent=0; updAcc();
+      els.over.classList.remove('gx-show'); els.pausetag.classList.remove('show');
+      clearCallout();
+      // open with a couple of targets so there's something to shoot
+      placeTarget(targets[0]);
+      targets[0].group.position.z=-120;                 // a clean opener mid-range
+      spawnTimer=0.6;
+    }
+
+    function spawn(){
+      const t=targets.find(x=>!x.alive);
+      if(!t) return;
+      placeTarget(t);
+      wave++;
+      // spawn pace tightens with waves
+      spawnGap=Math.max(0.75,1.7-wave*0.05);
+    }
+
+    /* ---------- sway (breathing) ---------- */
+    // Camera sway is large when hip-firing, and shrinks as you zoom/steady.
+    let swayT=0;
+    function swayOffset(){
+      // two out-of-phase sines = a slow lissajous wobble
+      const steady=zoom;                                // more zoom => steadier hold
+      const amp=(1-steady*0.82)*0.013;                  // radians
+      const sx=Math.sin(swayT*1.3)*amp + Math.sin(swayT*0.55)*amp*0.6;
+      const sy=Math.sin(swayT*0.9+1.7)*amp*0.8 + Math.sin(swayT*2.1)*amp*0.3;
+      return {sx,sy};
+    }
+
+    /* ---------- firing ---------- */
+    const ray=new THREE.Raycaster();
+    let curSway={sx:0,sy:0};
+
+    function fire(){
+      if(paused) return;
+      if(!started){ reset(); return; }
+      if(!running){ return; }
+      shots++;
+      // raycast straight down the (swayed) camera forward axis
+      ray.setFromCamera({x:0,y:0},camera);
+      const picks=targets.filter(t=>t.alive).map(t=>t.pick);
+      const hitsArr=ray.intersectObjects(picks,false);
+      if(hitsArr.length){
+        const obj=hitsArr[0].object;
+        const t=targets.find(x=>x.pick===obj);
+        const pt=hitsArr[0].point;
+        // distance from bullseye centre (local on the disc) => accuracy band
+        const centre=new THREE.Vector3(); t.pick.getWorldPosition(centre);
+        const off=pt.distanceTo(centre);                // metres from centre
+        // score by band + range bonus
+        const far=(t.dist-45)/215;
+        let band, label, baseHex, mult;
+        if(off<ringR[3]){ band='BULLSEYE'; baseHex=0xe8a23a; mult=3.0; }
+        else if(off<ringR[2]){ band='INNER'; baseHex=0x5fe0a0; mult=2.0; }
+        else if(off<ringR[1]){ band='HIT'; baseHex=0xe8a23a; mult=1.4; }
+        else { band='EDGE'; baseHex=0xf4ede1; mult=1.0; }
+        const pts=Math.round((40+far*120)*mult);
+        score+=pts; hits++;
+        els.score.textContent=score;
+        const cls=(band==='BULLSEYE')?'bull':'good';
+        setCallout(cls,band, '+'+pts+' · '+Math.round(t.dist)+'m');
+        burst(pt,baseHex,16,0.45);
+        setHit(t,true);
+        // brief flash then drop
+        t.state='hit'; t.t=0;
+      }else{
+        // clean miss — small dust puff far downrange along the shot
+        const p=new THREE.Vector3(); ray.ray.at(120,p); p.y=Math.max(0.2,p.y);
+        burst(p,0x8a6a44,8,0.6);
+        setCallout('bad','MISS','accuracy '+updAcc()+'%',0.7);
+      }
+      updAcc();
+    }
+
+    /* ---------- input ---------- */
+    onTap(renderer.domElement,()=>fire());
+    // dragging fine-aims; press-and-hold (without much drag) zooms the scope.
+    onDrag(renderer.domElement,{
+      start:()=>{ if(!paused){ zooming=true; } },
+      move:({dx,dy})=>{ if(paused) return;
+        const k=0.0016*(1-zoom*0.7);                    // slower aim while zoomed
+        yaw-=dx*k; pitch-=dy*k; pitch=Math.max(-0.4,Math.min(0.4,pitch)); },
+      end:()=>{ zooming=false; }
+    });
+
+    function togglePause(){ if(!running) return; paused=!paused; els.pausetag.classList.toggle('show',paused); }
+
+    const keys=new Set();
+    addEventListener('keydown',e=>{
+      const k=e.key.toLowerCase();
+      if(['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d',' ','enter','r','p','shift'].includes(k)) e.preventDefault();
+      if(k==='r'){ reset(); return; }
+      if(k==='p'){ togglePause(); return; }
+      if(k===' '||k==='enter'){ fire(); return; }
+      keys.add(k);
+    });
+    addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));
+
+    function keyboardStep(dt){
+      const sp=1.5*dt*(1-zoom*0.7);
+      if(keys.has('arrowleft')||keys.has('a')) yaw+=sp;
+      if(keys.has('arrowright')||keys.has('d')) yaw-=sp;
+      // up/down/W/S zoom the scope in & out (and also fine-tilt is via drag/keys? keep aim on shift)
+      // Primary keyboard zoom: hold Up/W to zoom in, Down/S to zoom out.
+      const zUp=keys.has('arrowup')||keys.has('w');
+      const zDn=keys.has('arrowdown')||keys.has('s');
+      // when shift held, up/down tilt instead of zoom (advanced aim)
+      if(keys.has('shift')){
+        if(zUp) pitch+=sp; if(zDn) pitch-=sp;
+        pitch=Math.max(-0.4,Math.min(0.4,pitch));
+        return false;
+      }
+      pitch=Math.max(-0.4,Math.min(0.4,pitch));
+      return zUp;                                        // true => keyboard wants zoom
+    }
+
+    document.getElementById('again').onclick=()=>reset();
+
+    function resize(){ renderer.setSize(innerWidth,innerHeight);
+      camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); }
+    addEventListener('resize',resize); resize();
+
+    function gameOver(){
+      running=false;
+      const a=updAcc();
+      const isBest=score>best;
+      if(isBest){ best=score; localStorage.setItem(BEST_KEY,best); els.bestHud.textContent=best; }
+      els.finalScore.textContent=score;
+      els.finalHits.textContent=hits;
+      els.finalAcc.textContent=a+'%';
+      els.best.textContent=best;
+      els.newbest.textContent=isBest?'★ New best!':'';
+      els.title.textContent=hits>0?'Range clear':'Range over';
+      clearCallout();
+      els.over.classList.add('gx-show');
+    }
+
+    /* ---------- main loop ---------- */
+    let prev=0;
+    function animate(ts){
+      const now=ts/1000; const dt=prev?Math.min(0.05,now-prev):0.016; prev=now;
+
+      if(running && !paused){
+        swayT+=dt;
+
+        // zoom charge: held (touch drag-press OR keyboard up/w) ramps in, releases out
+        const keyboardZoom=keyboardStep(dt);
+        const wantZoom = zooming || keyboardZoom;
+        zoom += (wantZoom? dt*2.0 : -dt*2.6);
+        zoom = Math.max(0,Math.min(1,zoom));
+
+        // spawn cadence
+        spawnTimer-=dt;
+        if(spawnTimer<=0){ spawn(); spawnTimer=spawnGap; }
+
+        // target lifecycle
+        for(const t of targets){
+          if(!t.alive) continue;
+          t.t+=dt;
+          const g=t.group;
+          if(t.state==='rising'){
+            const k=Math.min(1,t.t/0.4);
+            g.position.y=THREE.MathUtils.lerp(-3,0,k);
+            if(k>=1){ t.state='up'; t.t=0; }
+          }else if(t.state==='up'){
+            // gentle wobble in the wind, scaled by distance
+            g.rotation.z=Math.sin(swayT*1.4+t.dist)*0.02;
+            if(t.t>=t.life){ t.state='dropping'; t.t=0; }
+          }else if(t.state==='dropping'){
+            const k=Math.min(1,t.t/0.45);
+            g.position.y=THREE.MathUtils.lerp(0,-3.2,k);
+            g.rotation.x=k*0.9;
+            if(k>=1){ retire(t); missed++; if(missed>=MAX_MISS){ gameOver(); } }
+          }else if(t.state==='hit'){
+            // knock back and drop fast
+            const k=Math.min(1,t.t/0.5);
+            g.rotation.x=-k*1.5;
+            g.position.y=THREE.MathUtils.lerp(0,-2.5,k);
+            if(k>=1){ retire(t); }
+          }
+        }
+
+        stepBursts(dt);
+        if(calloutT>0){ calloutT-=dt; if(calloutT<=0) clearCallout(); }
+      } else if(!started){
+        // attract: idle breathing on the start screen
+        swayT+=dt;
+        stepBursts(dt);
+      }
+
+      // ---- camera: fov from zoom, plus breathing sway ----
+      const fov=THREE.MathUtils.lerp(BASE_FOV,ZOOM_FOV,zoom);
+      if(Math.abs(camera.fov-fov)>0.01){ camera.fov=fov; camera.updateProjectionMatrix(); }
+      curSway=swayOffset();
+      camera.rotation.set(0,0,0,'YXZ');
+      camera.rotateY(yaw+curSway.sx);
+      camera.rotateX(pitch+curSway.sy);
+
+      // ---- scope / reticle UI ----
+      const scoped=zoom>0.35;
+      els.scope.classList.toggle('show',scoped);
+      els.reticle.classList.toggle('hidden',scoped);
+      els.breathFill.style.height=(zoom*100).toFixed(0)+'%';
+      els.breath.classList.toggle('low',zoom<0.35 && (zooming||keys.has('arrowup')||keys.has('w')));
+      if(scoped){
+        // readout shows magnification + range to whatever is under the dot
+        ray.setFromCamera({x:0,y:0},camera);
+        const picks=targets.filter(t=>t.alive).map(t=>t.pick);
+        let d=0;
+        const hp=ray.intersectObjects(picks,false);
+        if(hp.length){ d=Math.round(hp[0].distance); }
+        else { const fp=ray.intersectObject(floor,false); if(fp.length) d=Math.round(fp[0].distance); }
+        const mag=(BASE_FOV/fov).toFixed(1);
+        els.readout.textContent='×'+mag+' · '+d+'m';
+      }
+
+      renderer.render(scene,camera); requestAnimationFrame(animate);
+    }
+    updAcc(); requestAnimationFrame(animate);
+  </script>
+</body>
+</html>

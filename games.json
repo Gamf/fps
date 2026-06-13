@@ -9,7 +9,12 @@
       "icon": "🎯",
       "color": "#e0556b",
       "dims": "3D",
-      "tags": ["shoot", "combo", "timed", "three.js"],
+      "tags": [
+        "shoot",
+        "combo",
+        "timed",
+        "three.js"
+      ],
       "license": "MIT",
       "credit": "Gamf original"
     },
@@ -19,7 +24,12 @@
       "path": "games/drone-hunt/",
       "icon": "🛸",
       "dims": "3D",
-      "tags": ["survival", "shoot", "waves", "three.js"],
+      "tags": [
+        "survival",
+        "shoot",
+        "waves",
+        "three.js"
+      ],
       "license": "MIT",
       "credit": "Gamf"
     },
@@ -29,7 +39,11 @@
       "path": "games/wave-range/",
       "icon": "🎯",
       "dims": "3D",
-      "tags": ["look", "shoot", "timed"],
+      "tags": [
+        "look",
+        "shoot",
+        "timed"
+      ],
       "license": "MIT",
       "credit": "Gamf sample"
     },
@@ -40,7 +54,92 @@
       "icon": "🤠",
       "color": "#ffae3c",
       "dims": "3D",
-      "tags": ["reflex", "shoot", "duel", "three.js"],
+      "tags": [
+        "reflex",
+        "shoot",
+        "duel",
+        "three.js"
+      ],
+      "license": "MIT",
+      "credit": "Gamf original"
+    },
+    {
+      "slug": "sniper",
+      "title": "Sniper",
+      "path": "games/sniper/",
+      "icon": "🎯",
+      "color": "#e0556b",
+      "dims": "3D",
+      "tags": [
+        "scope",
+        "precision",
+        "shoot",
+        "three.js"
+      ],
+      "license": "MIT",
+      "credit": "Gamf original"
+    },
+    {
+      "slug": "duck-hunt",
+      "title": "Duck Hunt",
+      "path": "games/duck-hunt/",
+      "icon": "🦆",
+      "color": "#e0556b",
+      "dims": "3D",
+      "tags": [
+        "shooter",
+        "birds",
+        "arcade",
+        "waves"
+      ],
+      "license": "MIT",
+      "credit": "Gamf original"
+    },
+    {
+      "slug": "whack",
+      "title": "Whack",
+      "path": "games/whack/",
+      "icon": "🔨",
+      "color": "#e0556b",
+      "dims": "3D",
+      "tags": [
+        "arcade",
+        "reflex",
+        "combo",
+        "timed"
+      ],
+      "license": "MIT",
+      "credit": "Gamf original"
+    },
+    {
+      "slug": "survival",
+      "title": "Survival",
+      "path": "games/survival/",
+      "icon": "🧟",
+      "color": "#e0556b",
+      "dims": "3D",
+      "tags": [
+        "survival",
+        "waves",
+        "shoot",
+        "three.js"
+      ],
+      "license": "MIT",
+      "credit": "Gamf original"
+    },
+    {
+      "slug": "clay",
+      "title": "Clay Shoot",
+      "path": "games/clay/",
+      "icon": "🎯",
+      "color": "#e0556b",
+      "dims": "3D",
+      "tags": [
+        "skeet",
+        "shooting",
+        "arcade",
+        "accuracy"
+      ],
       "license": "MIT",
       "credit": "Gamf original"
     }
