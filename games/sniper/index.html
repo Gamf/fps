@@ -80,6 +80,7 @@
     <span class="gx-pill">ACC <b id="acc">100%</b></span>
     <span class="gx-pill">Score <b id="score">0</b></span>
     <span class="gx-pill gx-pill--best"><svg class="gx-ico" style="width:1em;height:1em"><use href="#i-trophy"/></svg> <b id="bestHud">0</b></span>
+    <button class="gx-help__open" id="gxHelpOpen" aria-label="How to play"><svg class="gx-ico"><use href="#i-info"/></svg></button>
   </header>
 
   <div class="reticle" id="reticle"><span></span></div>
@@ -113,6 +114,21 @@
       <div class="gx-modal__row"><span>Best</span> <b id="best">0</b></div>
       <div class="gx-modal__new" id="newbest"></div>
       <button class="gx-btn gx-btn--primary" id="again"><svg class="gx-ico"><use href="#i-restart"/></svg> Shoot again</button>
+    </div>
+  </div>
+
+  <div class="gx-modal" id="gxHelp">
+    <div class="gx-modal__card">
+      <div class="gx-modal__title">HOW TO PLAY</div>
+      <p class="gx-help__obj">Steady your scope and drop the pop-up targets downrange before too many slip away.</p>
+      <ul class="gx-help__list">
+        <li><b>Drag / Arrows</b> <span>Aim left &amp; right</span></li>
+        <li><b>Hold / Up · W</b> <span>Zoom &amp; steady scope</span></li>
+        <li><b>Tap / Space</b> <span>Fire</span></li>
+        <li><b>P</b> <span>Pause</span></li>
+        <li><b>R</b> <span>Restart</span></li>
+      </ul>
+      <button class="gx-btn gx-btn--primary" id="gxHelpClose">Got it</button>
     </div>
   </div>
 
@@ -531,6 +547,28 @@
       renderer.render(scene,camera); requestAnimationFrame(animate);
     }
     updAcc(); requestAnimationFrame(animate);
+
+    /* ---------- how-to-play overlay ---------- */
+    const SEEN_KEY='gamf-seen-fps-'+SLUG;
+    const helpEl=document.getElementById('gxHelp');
+    let helpWasPaused=false;
+    function showHelp(){
+      helpWasPaused=paused;
+      if(running) paused=true;
+      helpEl.classList.add('gx-show');
+    }
+    function hideHelp(){
+      helpEl.classList.remove('gx-show');
+      if(running && !helpWasPaused) paused=false;
+      els.pausetag.classList.toggle('show',paused && running);
+    }
+    document.getElementById('gxHelpOpen').addEventListener('click',showHelp);
+    document.getElementById('gxHelpClose').addEventListener('click',hideHelp);
+    helpEl.addEventListener('click',e=>{ if(e.target===helpEl) hideHelp(); });
+    if(!localStorage.getItem(SEEN_KEY)){
+      helpEl.classList.add('gx-show');
+      localStorage.setItem(SEEN_KEY,'1');
+    }
   </script>
 </body>
 </html>

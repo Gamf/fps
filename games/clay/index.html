@@ -47,6 +47,7 @@
     <span class="gx-pill"><svg class="gx-ico" style="width:1em;height:1em"><use href="#i-target"/></svg> <b id="hits">0</b>/<b id="thrown">0</b></span>
     <span class="gx-pill">Score <b id="score">0</b></span>
     <span class="gx-pill gx-pill--best"><svg class="gx-ico" style="width:1em;height:1em"><use href="#i-trophy"/></svg> <b id="bestHud">0</b></span>
+    <button class="gx-help__open" id="gxHelpOpen" aria-label="How to play"><svg class="gx-ico"><use href="#i-info"/></svg></button>
   </header>
 
   <div class="roundtag" id="roundtag">Round 1</div>
@@ -70,6 +71,20 @@
       <div class="gx-modal__row"><span>Best</span> <b id="best">0</b></div>
       <div class="gx-modal__new" id="newbest"></div>
       <button class="gx-btn gx-btn--primary" id="again"><svg class="gx-ico"><use href="#i-restart"/></svg> Play again</button>
+    </div>
+  </div>
+
+  <div class="gx-modal" id="gxHelp">
+    <div class="gx-modal__card">
+      <div class="gx-modal__title">How to Play</div>
+      <p class="gx-help__obj">Shoot the launched clay pigeons mid-flight before they fall to the ground, leading your aim ahead of the target.</p>
+      <ul class="gx-help__list">
+        <li><b>Drag / Arrows</b> <span>Aim</span></li>
+        <li><b>Tap / Space</b> <span>Fire</span></li>
+        <li><b>P</b> <span>Pause</span></li>
+        <li><b>R</b> <span>Restart</span></li>
+      </ul>
+      <button class="gx-btn gx-btn--primary" id="gxHelpClose">Got it</button>
     </div>
   </div>
 
@@ -267,8 +282,9 @@
     // radius that grows a little with distance (so far clays stay hittable).
     const raycaster=new THREE.Raycaster();
     const _tmp=new THREE.Vector3();
+    function helpOpen(){ return document.getElementById('gxHelp').classList.contains('gx-show'); }
     function fire(){
-      if(!running||paused) return;
+      if(!running||paused||helpOpen()) return;
       flashEl.classList.add('show'); setTimeout(()=>flashEl.classList.remove('show'),70);
       raycaster.setFromCamera({x:0,y:0},camera);
       const ray=raycaster.ray;
@@ -307,6 +323,7 @@
     const GAME_KEYS=['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d',' ','enter','r','p'];
     addEventListener('keydown',e=>{ const k=e.key.toLowerCase();
       if(GAME_KEYS.includes(k)) e.preventDefault();
+      if(helpOpen()) return;
       if(k==='r'){ reset(); return; }
       if(k==='p'){ togglePause(); return; }
       if(k===' '||k==='enter'){ fire(); return; }
@@ -382,7 +399,24 @@
       renderer.render(scene,camera);
       requestAnimationFrame(animate);
     }
+    // ---- How-to-play overlay ----
+    const helpEl=document.getElementById('gxHelp');
+    let helpPaused=false;
+    function showHelp(){
+      if(running && !paused){ paused=true; pausetagEl.classList.toggle('show',paused); helpPaused=true; }
+      helpEl.classList.add('gx-show');
+    }
+    function hideHelp(){
+      helpEl.classList.remove('gx-show');
+      if(helpPaused){ helpPaused=false; if(running){ paused=false; pausetagEl.classList.remove('show'); } }
+    }
+    document.getElementById('gxHelpOpen').addEventListener('click',showHelp);
+    document.getElementById('gxHelpClose').addEventListener('click',hideHelp);
+    helpEl.addEventListener('click',e=>{ if(e.target===helpEl) hideHelp(); });
+
     reset(); requestAnimationFrame(animate);
+
+    if(!localStorage.getItem('gamf-seen-fps-clay')){ showHelp(); localStorage.setItem('gamf-seen-fps-clay','1'); }
   </script>
 </body>
 </html>

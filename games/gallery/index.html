@@ -73,6 +73,7 @@
     <span class="gx-pill"><svg class="gx-ico" style="width:1em;height:1em"><use href="#i-pause"/></svg> <span id="timeTxt">45</span>s</span>
     <span class="gx-pill">Score <b id="score">0</b></span>
     <span class="gx-pill gx-pill--best"><svg class="gx-ico" style="width:1em;height:1em"><use href="#i-trophy"/></svg> <b id="bestHud">0</b></span>
+    <button class="gx-help__open" id="gxHelpOpen" aria-label="How to play"><svg class="gx-ico"><use href="#i-info"/></svg></button>
   </header>
 
   <div class="combo" id="combo">x2</div>
@@ -100,6 +101,22 @@
       <div class="gx-modal__row"><span>Best</span> <b id="best">0</b></div>
       <div class="gx-modal__new" id="newbest"></div>
       <button class="gx-btn gx-btn--primary" id="again"><svg class="gx-ico"><use href="#i-restart"/></svg> Play again</button>
+    </div>
+  </div>
+
+  <!-- how to play -->
+  <div class="gx-modal" id="gxHelp">
+    <div class="gx-modal__card">
+      <div class="gx-modal__title">How to Play</div>
+      <p class="gx-help__obj">Aim down the lanes and shoot the moving bullseyes before the timer runs out, chaining hits to build your combo multiplier.</p>
+      <ul class="gx-help__list">
+        <li><b>Drag / WASD / Arrows</b> <span>Aim</span></li>
+        <li><b>Tap / Space / Enter</b> <span>Shoot</span></li>
+        <li><b>Gold targets</b> <span>Bonus points</span></li>
+        <li><b>P</b> <span>Pause</span></li>
+        <li><b>R</b> <span>Restart</span></li>
+      </ul>
+      <button class="gx-btn gx-btn--primary" id="gxHelpClose">Got it</button>
     </div>
   </div>
 
@@ -375,7 +392,9 @@
     addEventListener('keydown', e => {
       const k = e.key.toLowerCase();
       if (GAME_KEYS.includes(k)) e.preventDefault();
-      if (k === 'r') { reset(); return; }
+      const helpOpen = document.getElementById('gxHelp').classList.contains('gx-show');
+      if (k === 'r') { closeHelp(); reset(); return; }
+      if (helpOpen) { if (k === ' ' || k === 'enter') closeHelp(); return; }
       if (k === 'p') { togglePause(); return; }
       if (k === ' ' || k === 'enter') { fire(); return; }
       keys.add(k);
@@ -468,7 +487,29 @@
       requestAnimationFrame(animate);
     }
 
+    // ---- How to play overlay ----
+    const helpEl = $('gxHelp');
+    const SEEN_KEY = 'gamf-seen-fps-' + SLUG;
+    let helpPaused = false;
+    function openHelp() {
+      helpEl.classList.add('gx-show');
+      // pause the run while the overlay is up (only if not already paused)
+      if (running && !paused) { paused = true; helpPaused = true; }
+    }
+    function closeHelp() {
+      helpEl.classList.remove('gx-show');
+      if (helpPaused) { paused = false; helpPaused = false; }
+    }
+    $('gxHelpOpen').addEventListener('click', openHelp);
+    $('gxHelpClose').addEventListener('click', closeHelp);
+    helpEl.addEventListener('click', (e) => { if (e.target === helpEl) closeHelp(); });
+
     reset();
+    // show the overlay once on first visit (paused while it is up)
+    if (!localStorage.getItem(SEEN_KEY)) {
+      openHelp();
+      localStorage.setItem(SEEN_KEY, '1');
+    }
     requestAnimationFrame(animate);
   </script>
 </body>

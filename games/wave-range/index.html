@@ -32,6 +32,7 @@
     <span class="gx-pill"><svg class="gx-ico" style="width:1em;height:1em"><use href="#i-pause"/></svg> <span id="time">30</span>s</span>
     <span class="gx-pill">Hits <b id="hits">0</b></span>
     <span class="gx-pill gx-pill--best"><svg class="gx-ico" style="width:1em;height:1em"><use href="#i-trophy"/></svg> <b id="bestHud">0</b></span>
+    <button class="gx-help__open" id="gxHelpOpen" aria-label="How to play"><svg class="gx-ico"><use href="#i-info"/></svg></button>
   </header>
   <div class="cross"><span></span></div>
   <div class="gx-hint">
@@ -47,6 +48,19 @@
       <div class="gx-modal__row"><span>Best</span> <b id="best">0</b></div>
       <div class="gx-modal__new" id="newbest"></div>
       <button class="gx-btn gx-btn--primary" id="again"><svg class="gx-ico"><use href="#i-restart"/></svg> Play again</button>
+    </div>
+  </div>
+  <div class="gx-modal" id="gxHelp">
+    <div class="gx-modal__card">
+      <div class="gx-modal__title">HOW TO PLAY</div>
+      <p class="gx-help__obj">Aim down the range and shoot as many drifting targets as you can before the 30-second timer runs out.</p>
+      <ul class="gx-help__list">
+        <li><b>Swipe / Arrows</b> <span>Aim</span></li>
+        <li><b>Tap / Space</b> <span>Shoot center target</span></li>
+        <li><b>P</b> <span>Pause</span></li>
+        <li><b>R</b> <span>Restart</span></li>
+      </ul>
+      <button class="gx-btn gx-btn--primary" id="gxHelpClose">Got it</button>
     </div>
   </div>
   <script type="importmap">
@@ -190,6 +204,25 @@
       document.getElementById('newbest').textContent=isBest?'★ New best!':'';
       document.getElementById('over').classList.add('gx-show'); }
     document.getElementById('again').onclick=reset;
+
+    // How-to-play overlay. Pauses gameplay while open so nothing happens behind it.
+    const SEEN_KEY='gamf-seen-fps-'+SLUG;
+    const helpEl=document.getElementById('gxHelp');
+    let pausedByHelp=false;
+    function showHelp(){
+      if(running && !paused){ paused=true; pausedByHelp=true;
+        document.getElementById('pausetag').classList.add('show'); }
+      helpEl.classList.add('gx-show');
+    }
+    function hideHelp(){
+      helpEl.classList.remove('gx-show');
+      if(pausedByHelp){ pausedByHelp=false; paused=false;
+        document.getElementById('pausetag').classList.remove('show'); }
+    }
+    document.getElementById('gxHelpOpen').addEventListener('click',showHelp);
+    document.getElementById('gxHelpClose').addEventListener('click',hideHelp);
+    helpEl.addEventListener('click',e=>{ if(e.target===helpEl) hideHelp(); });
+    if(!localStorage.getItem(SEEN_KEY)){ showHelp(); localStorage.setItem(SEEN_KEY,'1'); }
 
     let prev=0;
     function animate(ts){

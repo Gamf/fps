@@ -48,6 +48,7 @@
     <span class="gx-pill"><span class="lives" id="lives"></span></span>
     <span class="gx-pill">Score <b id="score">0</b></span>
     <span class="gx-pill gx-pill--best"><svg class="gx-ico" style="width:1em;height:1em"><use href="#i-trophy"/></svg> <b id="bestHud">0</b></span>
+    <button class="gx-help__open" id="gxHelpOpen" aria-label="How to play"><svg class="gx-ico"><use href="#i-info"/></svg></button>
   </header>
   <div class="cross"><span></span></div>
   <div class="callout standby" id="callout"><div class="big" id="calloutBig">READY</div><div class="sub" id="calloutSub">Tap / Space to begin the duel</div></div>
@@ -65,6 +66,19 @@
       <div class="gx-modal__row"><span>Best</span> <b id="best">0</b></div>
       <div class="gx-modal__new" id="newbest"></div>
       <button class="gx-btn gx-btn--primary" id="again"><svg class="gx-ico"><use href="#i-restart"/></svg> Draw again</button>
+    </div>
+  </div>
+  <div class="gx-modal" id="gxHelp">
+    <div class="gx-modal__card">
+      <div class="gx-modal__title">HOW TO PLAY</div>
+      <p class="gx-help__obj">Wait for the bandit to light up, then aim at the marked gunman and fire faster than he can — but never draw before DRAW!.</p>
+      <ul class="gx-help__list">
+        <li><b>Swipe / Arrows</b> <span>Aim</span></li>
+        <li><b>Tap / Space</b> <span>Fire at the lit bandit</span></li>
+        <li><b>P</b> <span>Pause</span></li>
+        <li><b>R</b> <span>Restart</span></li>
+      </ul>
+      <button class="gx-btn gx-btn--primary" id="gxHelpClose">Got it</button>
     </div>
   </div>
   <script type="importmap">
@@ -281,7 +295,7 @@
     }
 
     function shoot(){
-      if(paused) return;
+      if(paused||helpOpen()) return;
       if(phase==='idle'){ reset(); return; }   // first trigger pull starts the duel
       if(!running) return;                       // ignore while game-over modal is up
       flashMuzzle();
@@ -329,7 +343,7 @@
       yaw-=dx*0.0035; pitch-=dy*0.0035; pitch=Math.max(-0.5,Math.min(0.5,pitch)); }});
     onTap(renderer.domElement,()=>shoot());
 
-    function togglePause(){ if(!running) return; paused=!paused; els.pausetag.classList.toggle('show',paused); }
+    function togglePause(){ if(!running||helpOpen()) return; paused=!paused; els.pausetag.classList.toggle('show',paused); }
 
     const keys=new Set();
     addEventListener('keydown',e=>{
@@ -355,6 +369,25 @@
     function resize(){ renderer.setSize(innerWidth,innerHeight);
       camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); }
     addEventListener('resize',resize); resize();
+
+    /* ---------- how-to-play overlay ---------- */
+    // Pauses gameplay while open so nothing happens behind it.
+    const SEEN_KEY='gamf-seen-fps-'+SLUG;
+    const helpEl=document.getElementById('gxHelp');
+    let pausedByHelp=false;
+    function helpOpen(){ return helpEl.classList.contains('gx-show'); }
+    function showHelp(){
+      if(running && !paused){ paused=true; pausedByHelp=true; els.pausetag.classList.add('show'); }
+      helpEl.classList.add('gx-show');
+    }
+    function hideHelp(){
+      helpEl.classList.remove('gx-show');
+      if(pausedByHelp){ pausedByHelp=false; paused=false; els.pausetag.classList.remove('show'); }
+    }
+    document.getElementById('gxHelpOpen').addEventListener('click',showHelp);
+    document.getElementById('gxHelpClose').addEventListener('click',hideHelp);
+    helpEl.addEventListener('click',e=>{ if(e.target===helpEl) hideHelp(); });
+    if(!localStorage.getItem(SEEN_KEY)){ helpEl.classList.add('gx-show'); localStorage.setItem(SEEN_KEY,'1'); }
 
     /* ---------- main loop ---------- */
     let prev=0;

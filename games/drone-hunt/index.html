@@ -39,6 +39,7 @@
     <span class="gx-pill" id="lives" style="color:var(--gx-danger);letter-spacing:1px">♥♥♥</span>
     <span class="gx-pill">Score <b id="score">0</b></span>
     <span class="gx-pill gx-pill--best"><svg class="gx-ico" style="width:1em;height:1em"><use href="#i-trophy"/></svg> <b id="bestHud">0</b></span>
+    <button class="gx-help__open" id="gxHelpOpen" aria-label="How to play"><svg class="gx-ico"><use href="#i-info"/></svg></button>
   </header>
   <div class="wavetag" id="wavetag">Wave 1</div>
   <div class="cross"><span></span></div>
@@ -57,6 +58,19 @@
       <div class="gx-modal__row"><span>Best</span> <b id="best">0</b></div>
       <div class="gx-modal__new" id="newbest"></div>
       <button class="gx-btn gx-btn--primary" id="again"><svg class="gx-ico"><use href="#i-restart"/></svg> Play again</button>
+    </div>
+  </div>
+  <div class="gx-modal" id="gxHelp">
+    <div class="gx-modal__card">
+      <div class="gx-modal__title">How to Play</div>
+      <p class="gx-help__obj">Aim your sights and shoot down the swarming drones before they reach you and breach your defenses.</p>
+      <ul class="gx-help__list">
+        <li><b>Drag / Arrows</b> <span>Aim sights</span></li>
+        <li><b>Tap / Space</b> <span>Fire</span></li>
+        <li><b>P</b> <span>Pause</span></li>
+        <li><b>R</b> <span>Restart</span></li>
+      </ul>
+      <button class="gx-btn gx-btn--primary" id="gxHelpClose">Got it</button>
     </div>
   </div>
   <script type="importmap">
@@ -234,7 +248,8 @@
       if(keys.has('arrowdown')||keys.has('s')) pitch-=sp;
       pitch=Math.max(-1.1,Math.min(1.1,pitch)); }
 
-    function resize(){ const w=innerWidth,h=innerHeight; renderer.setSize(w,h);
+    function resize(){ const w=innerWidth,h=innerHeight;
+      renderer.setPixelRatio(Math.min(devicePixelRatio||1,2)); renderer.setSize(w,h);
       camera.aspect=w/h; camera.updateProjectionMatrix(); }
     addEventListener('resize',resize); resize();
 
@@ -277,7 +292,24 @@
       camera.rotation.set(0,0,0,'YXZ'); camera.rotateY(yaw); camera.rotateX(pitch);
       renderer.render(scene,camera); requestAnimationFrame(animate);
     }
+    // ---- How-to-play overlay ----
+    const SEEN_KEY='gamf-seen-fps-'+SLUG;
+    const helpEl=document.getElementById('gxHelp');
+    let helpPaused=false;
+    function showHelp(){
+      if(running && !paused){ paused=true; helpPaused=true;
+        document.getElementById('pausetag').classList.add('show'); }
+      helpEl.classList.add('gx-show'); }
+    function hideHelp(){
+      helpEl.classList.remove('gx-show');
+      if(helpPaused){ helpPaused=false;
+        if(running){ paused=false; document.getElementById('pausetag').classList.remove('show'); } } }
+    document.getElementById('gxHelpOpen').addEventListener('click',showHelp);
+    document.getElementById('gxHelpClose').addEventListener('click',hideHelp);
+    helpEl.addEventListener('click',e=>{ if(e.target===helpEl) hideHelp(); });
+
     reset(); requestAnimationFrame(animate);
+    if(!localStorage.getItem(SEEN_KEY)){ localStorage.setItem(SEEN_KEY,'1'); showHelp(); }
   </script>
 </body>
 </html>

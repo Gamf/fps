@@ -49,6 +49,7 @@
     <span class="gx-pill">Hits <b id="hits">0</b></span>
     <span class="gx-pill">Score <b id="score">0</b></span>
     <span class="gx-pill gx-pill--best"><svg class="gx-ico" style="width:1em;height:1em"><use href="#i-trophy"/></svg> <b id="bestHud">0</b></span>
+    <button class="gx-help__open" id="gxHelpOpen" aria-label="How to play"><svg class="gx-ico"><use href="#i-info"/></svg></button>
   </header>
 
   <div class="whk-center">
@@ -73,6 +74,22 @@
       <div class="gx-modal__row"><span>Best</span> <b id="best">0</b></div>
       <div class="gx-modal__new" id="newbest"></div>
       <button class="gx-btn gx-btn--primary" id="again"><svg class="gx-ico"><use href="#i-restart"/></svg> Play again</button>
+    </div>
+  </div>
+
+  <div class="gx-modal" id="gxHelp">
+    <div class="gx-modal__card">
+      <div class="gx-modal__title">HOW TO PLAY</div>
+      <p class="gx-help__obj">Whack the moles that pop up to score before the timer runs out — but avoid the bombs.</p>
+      <ul class="gx-help__list">
+        <li><b>Tap / Arrows</b> <span>Aim a hole</span></li>
+        <li><b>Tap / Space</b> <span>Whack the mole</span></li>
+        <li><b>Gold mole</b> <span>Bonus points</span></li>
+        <li><b>Red bomb</b> <span>Avoid — penalty</span></li>
+        <li><b>P</b> <span>Pause</span></li>
+        <li><b>R</b> <span>Restart</span></li>
+      </ul>
+      <button class="gx-btn gx-btn--primary" id="gxHelpClose">Got it</button>
     </div>
   </div>
 
@@ -222,6 +239,7 @@
 
     // ---- Game state ----
     let score, hits, combo, bestCombo, timeLeft, running, paused, started, lastPause, spawnCD;
+    let helpPaused=false; // true when the help overlay forced the pause (resume only then)
     let best=+(localStorage.getItem(BEST_KEY)||0);
     const hitsEl=document.getElementById('hits'), scoreEl=document.getElementById('score');
     const bestHudEl=document.getElementById('bestHud'), timeTagEl=document.getElementById('timeTag');
@@ -336,7 +354,7 @@
     let reticlePulse=0;
 
     // ---- Input: touch ----
-    onTap(renderer.domElement,(x,y)=>{ if(!started){ return; }
+    onTap(renderer.domElement,(x,y)=>{ if(!started||helpOpen()){ return; }
       const idx=holeAtPointer(x,y); if(idx>=0) whack(idx); });
     // drag nudges the reticle between holes
     onDrag(renderer.domElement,{ move:({x,y})=>{ if(paused||!running) return;
@@ -346,6 +364,7 @@
     const GAME_KEYS=['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d',' ','enter','r','p'];
     addEventListener('keydown',e=>{ const k=e.key.toLowerCase();
       if(GAME_KEYS.includes(k)) e.preventDefault();
+      if(helpOpen()) return; // help overlay is modal; ignore game keys while open
       if(k==='r'){ reset(); return; }
       if(k==='p'){ togglePause(); return; }
       if(paused) return;
@@ -383,7 +402,7 @@
       document.querySelectorAll('.whk-pop').forEach(e=>e.remove());
       seed=20240607;
       score=0; hits=0; combo=0; bestCombo=0; timeLeft=GAME_TIME;
-      running=true; paused=false; started=true; lastPause=null; spawnCD=0.4; aimIndex=4;
+      running=true; paused=false; started=true; lastPause=null; spawnCD=0.4; aimIndex=4; helpPaused=false;
       scoreEl.textContent=0; hitsEl.textContent=0;
       timeTagEl.textContent=GAME_TIME; timeTagEl.classList.remove('low');
       comboTagEl.classList.remove('show');
@@ -474,6 +493,24 @@
 
     reset();
     requestAnimationFrame(animate);
+
+    // ---- How-to-play overlay ----
+    const helpEl=document.getElementById('gxHelp');
+    function helpOpen(){ return helpEl.classList.contains('gx-show'); }
+    function showHelp(){
+      if(running && !paused){ paused=true; pausetagEl.classList.remove('show'); helpPaused=true; }
+      helpEl.classList.add('gx-show');
+    }
+    function hideHelp(){
+      helpEl.classList.remove('gx-show');
+      if(helpPaused){ paused=false; helpPaused=false; }
+    }
+    document.getElementById('gxHelpOpen').addEventListener('click',showHelp);
+    document.getElementById('gxHelpClose').addEventListener('click',hideHelp);
+    helpEl.addEventListener('click',e=>{ if(e.target===helpEl) hideHelp(); });
+    if(!localStorage.getItem('gamf-seen-fps-whack')){
+      showHelp(); localStorage.setItem('gamf-seen-fps-whack','1');
+    }
   </script>
 </body>
 </html>

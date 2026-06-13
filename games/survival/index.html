@@ -51,6 +51,7 @@
     <span class="gx-pill">Wave <b id="waveHud">1</b></span>
     <span class="gx-pill">Score <b id="score">0</b></span>
     <span class="gx-pill gx-pill--best"><svg class="gx-ico" style="width:1em;height:1em"><use href="#i-trophy"/></svg> <b id="bestHud">0</b></span>
+    <button class="gx-help__open" id="gxHelpOpen" aria-label="How to play"><svg class="gx-ico"><use href="#i-info"/></svg></button>
   </header>
 
   <div class="wavetag" id="wavetag">Wave 1</div>
@@ -74,6 +75,20 @@
       <div class="gx-modal__row"><span>Best</span> <b id="best">0</b></div>
       <div class="gx-modal__new" id="newbest"></div>
       <button class="gx-btn gx-btn--primary" id="again"><svg class="gx-ico"><use href="#i-restart"/></svg> Play again</button>
+    </div>
+  </div>
+
+  <div class="gx-modal" id="gxHelp">
+    <div class="gx-modal__card">
+      <div class="gx-modal__title">How to Play</div>
+      <p class="gx-help__obj">Aim and gun down the advancing horde — clear each wave before any enemy reaches you, and survive as long as you can.</p>
+      <ul class="gx-help__list">
+        <li><b>Drag / Arrows</b> <span>Aim</span></li>
+        <li><b>Tap / Space</b> <span>Fire</span></li>
+        <li><b>P</b> <span>Pause</span></li>
+        <li><b>R</b> <span>Restart</span></li>
+      </ul>
+      <button class="gx-btn gx-btn--primary" id="gxHelpClose">Got it</button>
     </div>
   </div>
 
@@ -226,7 +241,7 @@
       enemies.splice(0).forEach(e=>scene.remove(e));
       bursts.splice(0).forEach(e=>scene.remove(e));
       tracers.splice(0).forEach(e=>{scene.remove(e); e.geometry.dispose(); e.material.dispose();});
-      seed=20240607;
+      seed=20240607; keys.clear();
       score=0; kills=0; lives=3; wave=1; running=true; paused=false; waveTimer=0;
       scoreEl.textContent=0; renderLives();
       pausetagEl.classList.remove('show');
@@ -258,7 +273,11 @@
       const i=enemies.indexOf(obj); if(i<0) return;
       obj.userData.hp--;
       explode(obj.position, obj.userData.col);
-      if(obj.userData.hp>0){ obj.userData.col=C_AMBER; return; } // damaged brute flashes amber, survives
+      if(obj.userData.hp>0){ obj.userData.col=C_AMBER;            // damaged brute flashes amber, survives
+        const c=new THREE.Color(C_AMBER);
+        obj.userData.head.material.color.copy(c);                 // body+head share one material → recolours both
+        obj.userData.head.material.emissive.copy(c).multiplyScalar(0.18);
+        return; }
       score+=obj.userData.pts; kills++; scoreEl.textContent=score;
       scene.remove(obj); enemies.splice(i,1); killsThisWave++;
       if(killsThisWave>=killNeed){ wave++; startWave(); }
@@ -325,7 +344,23 @@
       camera.rotation.set(0,0,0,'YXZ'); camera.rotateY(yaw); camera.rotateX(pitch);
       renderer.render(scene,camera); requestAnimationFrame(animate);
     }
+    // ---- how-to-play overlay ----
+    const helpEl=document.getElementById('gxHelp');
+    let helpWasPaused=false;
+    function openHelp(){ if(helpEl.classList.contains('gx-show')) return;
+      helpWasPaused=paused; paused=true; pausetagEl.classList.toggle('show',running && paused);
+      helpEl.classList.add('gx-show'); }
+    function closeHelp(){ helpEl.classList.remove('gx-show');
+      paused=helpWasPaused; pausetagEl.classList.toggle('show',running && paused); }
+    document.getElementById('gxHelpOpen').addEventListener('click',openHelp);
+    document.getElementById('gxHelpClose').addEventListener('click',closeHelp);
+    helpEl.addEventListener('click',e=>{ if(e.target===helpEl) closeHelp(); });
+
     reset(); requestAnimationFrame(animate);
+
+    // auto-show on first visit (after reset so its paused=false doesn't override us)
+    if(!localStorage.getItem('gamf-seen-fps-'+SLUG)){
+      localStorage.setItem('gamf-seen-fps-'+SLUG,'1'); openHelp(); }
   </script>
 </body>
 </html>
