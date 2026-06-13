@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#07080c">
+  <title>Quickdraw — Gamf</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../gamf.css">
+  <style>
+    body { --gx-accent: #ffae3c; }
+    html,body{height:100%;overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none}
+    body{background:#120c08}
+    canvas{display:block;width:100%;height:100%;touch-action:none}
+    /* crosshair */
+    .cross{position:fixed;top:50%;left:50%;width:30px;height:30px;margin:-15px 0 0 -15px;z-index:4;pointer-events:none;
+      filter:drop-shadow(0 0 5px rgba(255,174,60,.85))}
+    .cross::before,.cross::after{content:"";position:absolute;background:#ffd79a;opacity:.95}
+    .cross::before{left:14px;top:0;width:2px;height:30px}.cross::after{top:14px;left:0;height:2px;width:30px}
+    .cross span{position:absolute;inset:4px;border:2px solid rgba(255,200,130,.55);border-radius:50%}
+    /* big centre call-out: STANDBY / DRAW! / reaction time */
+    .callout{position:fixed;top:34%;left:50%;transform:translate(-50%,-50%);z-index:5;text-align:center;
+      font-family:var(--gx-font-display);font-weight:700;letter-spacing:.04em;pointer-events:none;
+      text-shadow:0 4px 18px rgba(0,0,0,.7);transition:opacity .12s}
+    .callout .big{font-size:clamp(2.2rem,11vw,4rem);line-height:1}
+    .callout .sub{font-size:var(--fs-md);color:var(--gx-text-2);margin-top:6px;font-weight:600}
+    .callout.standby .big{color:#cdb89a}
+    .callout.draw .big{color:#ff5d4a;animation:flash .5s ease}
+    .callout.good .big{color:#5fe0a0}
+    .callout.bad .big{color:#ff5d6c}
+    @keyframes flash{from{transform:scale(.6);opacity:.2}to{transform:scale(1);opacity:1}}
+    .pausetag{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:5;
+      font-family:var(--gx-font-display);font-weight:700;font-size:1.4rem;color:#e6d4ba;letter-spacing:.12em;display:none}
+    .pausetag.show{display:block}
+    /* hearts (lives) */
+    .lives{display:inline-flex;gap:3px;font-size:.95em;line-height:1}
+    .lives i{font-style:normal;filter:grayscale(0);transition:opacity .2s}
+    .lives i.gone{opacity:.2;filter:grayscale(1)}
+  </style>
+</head>
+<body class="gx">
+  <script src="../../gamf-icons.js"></script>
+  <header class="gx-hud">
+    <a class="gx-hud__back" href="../../"><svg class="gx-ico"><use href="#i-back"/></svg> FPS</a>
+    <span class="gx-hud__spacer"></span>
+    <span class="gx-pill"><span class="lives" id="lives"></span></span>
+    <span class="gx-pill">Score <b id="score">0</b></span>
+    <span class="gx-pill gx-pill--best"><svg class="gx-ico" style="width:1em;height:1em"><use href="#i-trophy"/></svg> <b id="bestHud">0</b></span>
+  </header>
+  <div class="cross"><span></span></div>
+  <div class="callout standby" id="callout"><div class="big" id="calloutBig">READY</div><div class="sub" id="calloutSub">Tap / Space to begin the duel</div></div>
+  <div class="gx-hint">
+    <span class="gx-hint__chip"><svg class="gx-ico"><use href="#i-touch"/></svg> Drag / arrows to aim</span>
+    <span class="gx-hint__chip"><svg class="gx-ico"><use href="#i-touch"/></svg> Tap / Space to fire</span>
+    <span class="gx-hint__chip"><svg class="gx-ico"><use href="#i-pause"/></svg> P pause · R restart</span>
+  </div>
+  <div class="pausetag" id="pausetag">PAUSED</div>
+  <div class="gx-modal" id="over">
+    <div class="gx-modal__card">
+      <h2 class="gx-modal__title" id="title">Outdrawn!</h2>
+      <div class="gx-modal__row"><span>Score</span> <b id="finalScore">0</b></div>
+      <div class="gx-modal__row"><span>Best draw</span> <b id="finalFast">—</b></div>
+      <div class="gx-modal__row"><span>Best</span> <b id="best">0</b></div>
+      <div class="gx-modal__new" id="newbest"></div>
+      <button class="gx-btn gx-btn--primary" id="again"><svg class="gx-ico"><use href="#i-restart"/></svg> Draw again</button>
+    </div>
+  </div>
+  <script type="importmap">
+    { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
+  </script>
+  <script type="module">
+    import * as THREE from 'three';
+    import { onDrag, onTap } from './touch.js';
+
+    const SLUG='quickdraw', BEST_KEY='gamf-fps-'+SLUG+'-best';
+
+    /* ---------- seeded LCG (no Math.random / Date) ---------- */
+    let seed=0x2f6e3b1;
+    const rnd=()=>(seed=(seed*1103515245+12345)&0x7fffffff)/0x7fffffff;
+    const range=(a,b)=>a+(b-a)*rnd();
+
+    /* ---------- renderer / scene ---------- */
+    const renderer=new THREE.WebGLRenderer({antialias:true});
+    renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));
+    renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+    document.body.appendChild(renderer.domElement);
+
+    const scene=new THREE.Scene();
+    scene.fog=new THREE.Fog(0x2a1c12,16,60);
+
+    // desert dusk sky
+    const skyGeo=new THREE.SphereGeometry(70,24,16);
+    const skyMat=new THREE.ShaderMaterial({side:THREE.BackSide,uniforms:{
+      top:{value:new THREE.Color(0x251733)},mid:{value:new THREE.Color(0x7a3a2a)},bot:{value:new THREE.Color(0xe8a45a)}},
+      vertexShader:`varying vec3 v; void main(){ v=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);} `,
+      fragmentShader:`varying vec3 v; uniform vec3 top; uniform vec3 mid; uniform vec3 bot;
+        void main(){ float h=clamp((normalize(v).y+0.15)/1.0,0.0,1.0);
+          vec3 c = h<0.42 ? mix(bot,mid,h/0.42) : mix(mid,top,(h-0.42)/0.58);
+          gl_FragColor=vec4(c,1.0);} `});
+    scene.add(new THREE.Mesh(skyGeo,skyMat));
+
+    const camera=new THREE.PerspectiveCamera(70,1,0.1,120); camera.position.set(0,1.6,6);
+    let yaw=0,pitch=-0.02;
+
+    // desert floor
+    const floor=new THREE.Mesh(new THREE.PlaneGeometry(220,220),
+      new THREE.MeshStandardMaterial({color:0x6b4226,roughness:1,metalness:0}));
+    floor.rotation.x=-Math.PI/2; floor.receiveShadow=true; scene.add(floor);
+    const grid=new THREE.GridHelper(220,80,0x7c5230,0x5a3a22); grid.position.y=0.01;
+    grid.material.transparent=true; grid.material.opacity=0.25; scene.add(grid);
+
+    // distant mesa silhouettes
+    const mesaMat=new THREE.MeshStandardMaterial({color:0x3a2417,roughness:1});
+    for(let i=0;i<7;i++){
+      const w=range(6,14), h=range(4,11);
+      const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,3),mesaMat);
+      const ang=range(-1.1,1.1);
+      m.position.set(Math.sin(ang)*42,h/2-0.5,-30-Math.cos(ang)*12+range(-6,6));
+      scene.add(m);
+    }
+
+    // lights — warm dusk key + cool fill
+    scene.add(new THREE.HemisphereLight(0xffd9a8,0x3a2030,0.7));
+    const dl=new THREE.DirectionalLight(0xffc070,1.15); dl.position.set(-8,11,6);
+    dl.castShadow=true; dl.shadow.mapSize.set(1024,1024);
+    dl.shadow.camera.left=-20; dl.shadow.camera.right=20; dl.shadow.camera.top=20; dl.shadow.camera.bottom=-20;
+    scene.add(dl);
+    scene.add(new THREE.PointLight(0x5a78ff,0.35,80));
+
+    /* ---------- bandit cut-outs in a row ---------- */
+    // Each bandit is a flat board (fence-post target). Lit ones are "hostile".
+    const NUM=5;
+    const bandits=[];
+    const boardGeo=new THREE.BoxGeometry(1.5,2.5,0.18);
+    const hatGeo=new THREE.CylinderGeometry(0.45,0.5,0.32,12);
+    const brimGeo=new THREE.CylinderGeometry(0.85,0.85,0.06,16);
+    const postGeo=new THREE.BoxGeometry(0.18,1.4,0.18);
+    const badgeGeo=new THREE.CircleGeometry(0.34,5);
+
+    function makeBandit(x){
+      const g=new THREE.Group();
+      // post
+      const post=new THREE.Mesh(postGeo,new THREE.MeshStandardMaterial({color:0x4a3420,roughness:1}));
+      post.position.y=0.7; post.castShadow=true; g.add(post);
+      // board (the silhouette body)
+      const bodyMat=new THREE.MeshStandardMaterial({color:0x2c2c34,roughness:0.8,emissive:0x000000});
+      const body=new THREE.Mesh(boardGeo,bodyMat);
+      body.position.y=2.45; body.castShadow=true; g.add(body);
+      // hat
+      const hatMat=new THREE.MeshStandardMaterial({color:0x1a1a1f,roughness:0.9});
+      const brim=new THREE.Mesh(brimGeo,hatMat); brim.position.y=3.78; g.add(brim);
+      const crown=new THREE.Mesh(hatGeo,hatMat); crown.position.y=3.95; g.add(crown);
+      // badge / bullseye on chest (glows when hostile)
+      const badgeMat=new THREE.MeshStandardMaterial({color:0x554433,emissive:0x000000,roughness:0.4,metalness:0.3});
+      const badge=new THREE.Mesh(badgeGeo,badgeMat); badge.position.set(0,2.5,0.1); g.add(badge);
+      g.position.set(x,0,-9);
+      g.userData={body,bodyMat,badge,badgeMat,hostile:false,baseX:x,downT:0};
+      scene.add(g);
+      return g;
+    }
+    const spacing=3.2;
+    for(let i=0;i<NUM;i++) bandits.push(makeBandit((i-(NUM-1)/2)*spacing));
+
+    function setHostile(b,on){
+      b.userData.hostile=on;
+      if(on){
+        b.userData.bodyMat.color.setHex(0x7a1f2a);
+        b.userData.bodyMat.emissive.setHex(0x521018);
+        b.userData.badgeMat.color.setHex(0xffd24a);
+        b.userData.badgeMat.emissive.setHex(0xff7a2a);
+      }else{
+        b.userData.bodyMat.color.setHex(0x2c2c34);
+        b.userData.bodyMat.emissive.setHex(0x000000);
+        b.userData.badgeMat.color.setHex(0x554433);
+        b.userData.badgeMat.emissive.setHex(0x000000);
+      }
+    }
+    // knock a bandit board flat (hit feedback)
+    function dropBandit(b){ b.userData.downT=0.9; }
+
+    /* ---------- muzzle flash + particle bursts ---------- */
+    const bursts=[];
+    const burstGeo=new THREE.SphereGeometry(0.08,6,6);
+    function burst(pos,hex){
+      for(let i=0;i<12;i++){
+        const p=new THREE.Mesh(burstGeo,new THREE.MeshBasicMaterial({color:hex,transparent:true}));
+        p.position.copy(pos);
+        p.userData={v:new THREE.Vector3(range(-.35,.35),range(-.1,.45),range(-.35,.35)),life:1};
+        scene.add(p); bursts.push(p);
+      }
+    }
+    function stepBursts(dt){
+      for(let i=bursts.length-1;i>=0;i--){ const p=bursts[i];
+        p.position.addScaledVector(p.userData.v,dt*60);
+        p.userData.v.y-=dt*0.6; p.userData.v.multiplyScalar(0.9);
+        p.userData.life-=dt*1.7; p.material.opacity=Math.max(0,p.userData.life);
+        p.scale.setScalar(Math.max(0.1,p.userData.life));
+        if(p.userData.life<=0){ scene.remove(p); bursts.splice(i,1); }
+      }
+    }
+    // muzzle flash light
+    const muzzle=new THREE.PointLight(0xffd070,0,8); muzzle.position.set(0,1.4,4.5); scene.add(muzzle);
+
+    /* ---------- game state ---------- */
+    const els={score:document.getElementById('score'),best:document.getElementById('best'),
+      bestHud:document.getElementById('bestHud'),finalScore:document.getElementById('finalScore'),
+      finalFast:document.getElementById('finalFast'),newbest:document.getElementById('newbest'),
+      lives:document.getElementById('lives'),over:document.getElementById('over'),title:document.getElementById('title'),
+      callout:document.getElementById('callout'),calloutBig:document.getElementById('calloutBig'),
+      calloutSub:document.getElementById('calloutSub'),pausetag:document.getElementById('pausetag')};
+
+    let best=+(localStorage.getItem(BEST_KEY)||0);
+    els.bestHud.textContent=best; els.best.textContent=best;
+
+    const MAX_LIVES=3;
+    // phases: 'idle'(pre-game) 'standby'(waiting to draw) 'draw'(shoot now!) 'result' 'dead'
+    let phase='idle', score=0, lives=MAX_LIVES, fastest=Infinity, combo=0;
+    let armedIdx=-1;          // which bandit is hostile
+    let phaseT=0, drawDelay=0, reactStart=0, roundN=0, reactLimit=1.5;
+    let running=false, paused=false;
+
+    function renderLives(){
+      let s='';
+      for(let i=0;i<MAX_LIVES;i++) s+=`<i class="${i<lives?'':'gone'}">★</i>`;
+      els.lives.innerHTML=s;
+    }
+    function setCallout(cls,big,sub){
+      els.callout.className='callout '+cls;
+      els.calloutBig.textContent=big;
+      els.calloutSub.textContent=sub||'';
+      els.callout.style.opacity=big?'1':'0';
+    }
+
+    function reset(){
+      seed=0x2f6e3b1;
+      score=0; lives=MAX_LIVES; fastest=Infinity; combo=0; roundN=0;
+      bandits.forEach(b=>{ setHostile(b,false); b.userData.downT=0; b.rotation.set(0,0,0); });
+      armedIdx=-1; running=true; paused=false;
+      els.score.textContent=0; renderLives();
+      els.over.classList.remove('gx-show'); els.pausetag.classList.remove('show');
+      beginStandby();
+    }
+
+    function beginStandby(){
+      phase='standby'; phaseT=0;
+      // suspenseful wait, shrinks slightly as rounds climb
+      drawDelay=range(0.9,2.4)-Math.min(0.7,roundN*0.03);
+      setCallout('standby','STANDBY','…hold steady…');
+    }
+    function beginDraw(){
+      phase='draw'; phaseT=0; reactStart=performance.now();
+      // choose a bandit to go hostile
+      armedIdx=Math.floor(rnd()*NUM)%NUM;
+      setHostile(bandits[armedIdx],true);
+      // time you have to react, tightens with rounds & combo
+      reactLimit=Math.max(0.55,1.5-roundN*0.025-Math.min(0.3,combo*0.02));
+      setCallout('draw','DRAW!','');
+    }
+    function endRoundGood(rt){
+      const b=bandits[armedIdx];
+      burst(b.position.clone().setY(2.5),0xffd24a);
+      dropBandit(b); setHostile(b,false);
+      combo++;
+      // score: faster = more, plus combo bonus
+      const fast=Math.max(0,1-rt/reactLimit);              // 0..1
+      const pts=Math.round(50+fast*150)+ (combo-1)*10;
+      score+=pts; els.score.textContent=score;
+      if(rt<fastest) fastest=rt;
+      armedIdx=-1; phase='result'; phaseT=0;
+      setCallout('good',(rt*1000|0)+' ms',(combo>1?combo+'x combo  ':'')+'+'+pts);
+    }
+    function loseLife(reason){
+      combo=0;
+      if(armedIdx>=0){ setHostile(bandits[armedIdx],false); armedIdx=-1; }
+      lives--; renderLives();
+      phase='result'; phaseT=0;
+      setCallout('bad',reason,lives>0?'steady now…':'');
+      if(lives<=0) gameOver();
+    }
+
+    function shoot(){
+      if(paused) return;
+      if(phase==='idle'){ reset(); return; }   // first trigger pull starts the duel
+      if(!running) return;                       // ignore while game-over modal is up
+      flashMuzzle();
+      // raycast from screen centre
+      ray.setFromCamera({x:0,y:0},camera);
+      const hits=ray.intersectObjects(bandits,true);
+      let hitGroup=null;
+      if(hits.length){ let o=hits[0].object; while(o.parent && bandits.indexOf(o)<0) o=o.parent;
+        if(bandits.indexOf(o)>=0) hitGroup=o; }
+
+      if(phase==='draw'){
+        if(hitGroup && hitGroup===bandits[armedIdx]){
+          const rt=(performance.now()-reactStart)/1000;
+          endRoundGood(rt);
+        }else{
+          // shot the wrong target or empty air during a draw
+          loseLife(hitGroup?'WRONG MAN':'MISSED');
+          if(hitGroup) { burst(hitGroup.position.clone().setY(2.5),0xff5d6c); dropBandit(hitGroup); }
+        }
+      }else if(phase==='standby'){
+        // drew too early — itchy trigger finger
+        loseLife('TOO EARLY');
+      }
+      // during 'result' shots are ignored (cooldown)
+    }
+
+    function flashMuzzle(){ muzzle.intensity=2.2; }
+
+    function gameOver(){
+      running=false; phase='dead';
+      const isBest=score>best;
+      if(isBest){ best=score; localStorage.setItem(BEST_KEY,best); els.bestHud.textContent=best; }
+      els.finalScore.textContent=score;
+      els.finalFast.textContent=fastest===Infinity?'—':((fastest*1000|0)+' ms');
+      els.best.textContent=best;
+      els.newbest.textContent=isBest?'★ New best!':'';
+      els.title.textContent=score>0?'Duel over':'Outdrawn!';
+      setCallout('','');
+      els.over.classList.add('gx-show');
+    }
+
+    /* ---------- input ---------- */
+    const ray=new THREE.Raycaster();
+    onDrag(renderer.domElement,{move:({dx,dy})=>{ if(paused) return;
+      yaw-=dx*0.0035; pitch-=dy*0.0035; pitch=Math.max(-0.5,Math.min(0.5,pitch)); }});
+    onTap(renderer.domElement,()=>shoot());
+
+    function togglePause(){ if(!running) return; paused=!paused; els.pausetag.classList.toggle('show',paused); }
+
+    const keys=new Set();
+    addEventListener('keydown',e=>{
+      const k=e.key.toLowerCase();
+      if(['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d',' ','enter','r','p'].includes(k)) e.preventDefault();
+      if(k==='r'){ reset(); return; }
+      if(k==='p'){ togglePause(); return; }
+      if(k===' '||k==='enter'){ shoot(); return; }
+      keys.add(k);
+    });
+    addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));
+    function keyboardAim(dt){
+      const sp=1.7*dt;
+      if(keys.has('arrowleft')||keys.has('a')) yaw+=sp;
+      if(keys.has('arrowright')||keys.has('d')) yaw-=sp;
+      if(keys.has('arrowup')||keys.has('w')) pitch+=sp;
+      if(keys.has('arrowdown')||keys.has('s')) pitch-=sp;
+      pitch=Math.max(-0.5,Math.min(0.5,pitch));
+    }
+
+    document.getElementById('again').onclick=()=>reset();
+
+    function resize(){ renderer.setSize(innerWidth,innerHeight);
+      camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); }
+    addEventListener('resize',resize); resize();
+
+    /* ---------- main loop ---------- */
+    let prev=0;
+    function animate(ts){
+      const now=ts/1000; const dt=prev?Math.min(0.05,now-prev):0.016; prev=now;
+
+      if(running && !paused){
+        phaseT+=dt;
+        if(phase==='standby'){
+          if(phaseT>=drawDelay) beginDraw();
+        }else if(phase==='draw'){
+          // gentle hostile pulse
+          const pulse=0.4+0.4*Math.sin(now*12);
+          if(armedIdx>=0) bandits[armedIdx].userData.badgeMat.emissive.setRGB(1*pulse,0.45*pulse,0.1*pulse);
+          if(phaseT>=reactLimit){ loseLife('TOO SLOW'); }
+        }else if(phase==='result'){
+          if(phaseT>=0.9){ roundN++; beginStandby(); }
+        }
+        // bandit drop / rise animation
+        for(const b of bandits){
+          if(b.userData.downT>0){
+            b.userData.downT-=dt;
+            const t=Math.max(0,b.userData.downT/0.9);
+            b.rotation.x=-(1-t)*1.3;      // tip backward
+          }else if(b.rotation.x<0){
+            b.rotation.x=Math.min(0,b.rotation.x+dt*2.5);
+          }
+        }
+        keyboardAim(dt);
+        stepBursts(dt);
+        muzzle.intensity*=0.82;
+      }
+
+      camera.rotation.set(0,0,0,'YXZ'); camera.rotateY(yaw); camera.rotateX(pitch);
+      renderer.render(scene,camera); requestAnimationFrame(animate);
+    }
+    renderLives(); requestAnimationFrame(animate);
+  </script>
+</body>
+</html>

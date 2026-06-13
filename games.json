@@ -32,6 +32,17 @@
       "tags": ["look", "shoot", "timed"],
       "license": "MIT",
       "credit": "Gamf sample"
+    },
+    {
+      "slug": "quickdraw",
+      "title": "Quickdraw",
+      "path": "games/quickdraw/",
+      "icon": "🤠",
+      "color": "#ffae3c",
+      "dims": "3D",
+      "tags": ["reflex", "shoot", "duel", "three.js"],
+      "license": "MIT",
+      "credit": "Gamf original"
     }
   ]
 }
