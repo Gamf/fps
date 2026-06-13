@@ -3,6 +3,16 @@
   "title": "FPS",
   "games": [
     {
+      "slug": "drone-hunt",
+      "title": "Drone Hunt",
+      "path": "games/drone-hunt/",
+      "icon": "🛸",
+      "dims": "3D",
+      "tags": ["survival", "shoot", "waves", "three.js"],
+      "license": "MIT",
+      "credit": "Gamf"
+    },
+    {
       "slug": "wave-range",
       "title": "Wave Range",
       "path": "games/wave-range/",
