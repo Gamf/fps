@@ -117,7 +117,10 @@
     document.body.appendChild(renderer.domElement);
 
     const scene=new THREE.Scene();
-    scene.fog=new THREE.FogExp2(0x15110e,0.030);
+    // Solid background so the playfield is never on a blank/transparent canvas.
+    scene.background=new THREE.Color(0x15110e);
+    // Gentle fog for depth — kept thin so no hole/mole is ever hidden by it.
+    scene.fog=new THREE.FogExp2(0x15110e,0.018);
 
     // Gradient backdrop sphere (warm arcade tones).
     const skyMat=new THREE.ShaderMaterial({side:THREE.BackSide,uniforms:{

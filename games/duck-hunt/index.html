@@ -126,8 +126,7 @@
     const floor=new THREE.Mesh(new THREE.PlaneGeometry(600,600),
       new THREE.MeshStandardMaterial({color:0x2c3a18,roughness:1}));
     floor.rotation.x=-Math.PI/2; floor.receiveShadow=true; scene.add(floor);
-    const grid=new THREE.GridHelper(600,80,0x4a5a26,0x33401c); grid.position.y=0.02;
-    grid.material.transparent=true; grid.material.opacity=0.4; scene.add(grid);
+    // (no GridHelper — plain solid ground only, no visible grid lines)
     // a low ridge of bushes far away for parallax depth
     const bushGeo=new THREE.SphereGeometry(1,8,6);
     const bushMat=new THREE.MeshStandardMaterial({color:0x24300f,roughness:1});

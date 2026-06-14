@@ -23,7 +23,7 @@
     .wavetag.show{opacity:1}
 
     /* crosshair */
-    .cross{position:fixed;top:50%;left:50%;width:30px;height:30px;margin:-15px 0 0 -15px;z-index:4;pointer-events:none}
+    .cross{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:30px;height:30px;z-index:4;pointer-events:none}
     .cross::before,.cross::after{content:"";position:absolute;background:var(--gx-amber);opacity:.95}
     .cross::before{left:14px;top:0;width:2px;height:30px}
     .cross::after{top:14px;left:0;height:2px;width:30px}
@@ -117,18 +117,20 @@
       vertexShader:`varying vec3 v; void main(){ v=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);} `,
       fragmentShader:`varying vec3 v; uniform vec3 top; uniform vec3 bot;
         void main(){ float h=clamp((normalize(v).y+0.32),0.0,1.0); gl_FragColor=vec4(mix(bot,top,h),1.0);} `});
-    scene.add(new THREE.Mesh(new THREE.SphereGeometry(90,24,16),skyMat));
-    scene.fog=new THREE.FogExp2(C_BG,0.016);
+    scene.add(new THREE.Mesh(new THREE.SphereGeometry(180,24,16),skyMat));
+    scene.background=new THREE.Color(C_BG);
+    // gentle linear fog for depth that does NOT hide gameplay: enemies spawn ~50-70u out,
+    // so fog must stay clear well past that. (The old FogExp2(0.016) hid 70-90% of every
+    // spawned enemy in the dark background — they looked like they never rendered.)
+    scene.fog=new THREE.Fog(C_BG,90,200);
 
     const camera=new THREE.PerspectiveCamera(74,1,0.1,220); camera.position.set(0,1.6,0);
     let yaw=0,pitch=0;
 
-    // ---- ground + grid ----
-    const floor=new THREE.Mesh(new THREE.PlaneGeometry(320,320),
-      new THREE.MeshStandardMaterial({color:0x1b1410,roughness:0.96}));
+    // ---- ground (plain solid plane, no grid lines) ----
+    const floor=new THREE.Mesh(new THREE.PlaneGeometry(400,400),
+      new THREE.MeshStandardMaterial({color:0x241a13,roughness:0.96}));
     floor.rotation.x=-Math.PI/2; floor.receiveShadow=true; scene.add(floor);
-    const grid=new THREE.GridHelper(320,96,0x4a3826,0x36281d); grid.position.y=0.02;
-    grid.material.transparent=true; grid.material.opacity=0.5; scene.add(grid);
 
     // ---- lighting ----
     scene.add(new THREE.HemisphereLight(0xffe7c2,0x241a12,0.85));
@@ -148,7 +150,7 @@
     const armGeo=new THREE.CapsuleGeometry(0.13,0.7,3,8);
     function makeEnemy(color,brute){
       const g=new THREE.Group();
-      const bodyMat=new THREE.MeshStandardMaterial({color,emissive:new THREE.Color(color).multiplyScalar(0.18),
+      const bodyMat=new THREE.MeshStandardMaterial({color,emissive:new THREE.Color(color).multiplyScalar(0.35),
         metalness:0.25,roughness:0.55});
       const body=new THREE.Mesh(bodyGeo,bodyMat); body.position.y=1.05; body.castShadow=true; g.add(body);
       const head=new THREE.Mesh(headGeo,bodyMat); head.position.y=1.9; head.castShadow=true; g.add(head);
@@ -171,7 +173,7 @@
       const col=brute?0x9c3320:(hot?C_AMBER:C_RED);
       const e=makeEnemy(col,brute);
       const ang=(rand()-0.5)*Math.PI*0.95;             // forward arc
-      const dist=72+rand()*24;
+      const dist=42+rand()*22;                          // 42-64u: in front, clear of fog (fog starts 90u)
       e.position.set(Math.sin(ang)*dist*0.55, 0, -Math.abs(Math.cos(ang)*dist));
       let sp=(0.085+rand()*0.04)*speedMul;
       if(hot) sp*=1.7; if(brute) sp*=0.62;
@@ -276,7 +278,7 @@
       if(obj.userData.hp>0){ obj.userData.col=C_AMBER;            // damaged brute flashes amber, survives
         const c=new THREE.Color(C_AMBER);
         obj.userData.head.material.color.copy(c);                 // body+head share one material → recolours both
-        obj.userData.head.material.emissive.copy(c).multiplyScalar(0.18);
+        obj.userData.head.material.emissive.copy(c).multiplyScalar(0.35);
         return; }
       score+=obj.userData.pts; kills++; scoreEl.textContent=score;
       scene.remove(obj); enemies.splice(i,1); killsThisWave++;

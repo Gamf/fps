@@ -94,18 +94,19 @@
       vertexShader:`varying vec3 v; void main(){ v=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);} `,
       fragmentShader:`varying vec3 v; uniform vec3 top; uniform vec3 bot;
         void main(){ float h=clamp((normalize(v).y+0.35),0.0,1.0); gl_FragColor=vec4(mix(bot,top,h),1.0);} `});
-    scene.add(new THREE.Mesh(new THREE.SphereGeometry(80,24,16),skyMat));
-    scene.fog=new THREE.FogExp2(0x0a0e16,0.018);
+    scene.add(new THREE.Mesh(new THREE.SphereGeometry(180,24,16),skyMat));
+    // Light, distance-only haze so drones stay clearly visible at their spawn
+    // distance (~70-95 units). The previous density (0.018) fogged targets out
+    // almost completely the moment they appeared.
+    scene.fog=new THREE.FogExp2(0x0a0e16,0.0042);
 
-    const camera=new THREE.PerspectiveCamera(74,1,0.1,200); camera.position.set(0,1.6,0);
+    const camera=new THREE.PerspectiveCamera(74,1,0.1,400); camera.position.set(0,1.6,0);
     let yaw=0,pitch=0;
 
-    // Ground + grid for depth cue.
-    const floor=new THREE.Mesh(new THREE.PlaneGeometry(300,300),
+    // Plain solid ground plane for depth (no grid lines — users disliked the grid).
+    const floor=new THREE.Mesh(new THREE.PlaneGeometry(600,600),
       new THREE.MeshStandardMaterial({color:0x12182a,roughness:0.95}));
     floor.rotation.x=-Math.PI/2; floor.receiveShadow=true; scene.add(floor);
-    const grid=new THREE.GridHelper(300,90,0x26314f,0x18203a); grid.position.y=0.02;
-    grid.material.transparent=true; grid.material.opacity=0.45; scene.add(grid);
 
     // Lighting.
     scene.add(new THREE.HemisphereLight(0xaecbff,0x1a2236,0.8));

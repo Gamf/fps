@@ -176,8 +176,6 @@
     const floor=new THREE.Mesh(new THREE.PlaneGeometry(800,800,1,1),
       new THREE.MeshStandardMaterial({color:0x6a4327,roughness:1,metalness:0}));
     floor.rotation.x=-Math.PI/2; floor.receiveShadow=true; scene.add(floor);
-    const grid=new THREE.GridHelper(800,160,0x7c5230,0x53381f); grid.position.y=0.02;
-    grid.material.transparent=true; grid.material.opacity=0.18; scene.add(grid);
 
     // distant ridge silhouettes lining the valley
     const ridgeMat=new THREE.MeshStandardMaterial({color:0x32200f,roughness:1});
@@ -219,19 +217,20 @@
         new THREE.MeshStandardMaterial({color:0x3a2818,roughness:1}));
       stake.position.y=1.1; stake.castShadow=true; g.add(stake);
       // disc face (concentric rings) — slight z offset so they layer cleanly
-      const faceMat=new THREE.MeshStandardMaterial({color:0x241712,roughness:0.85});
+      const faceMat=new THREE.MeshStandardMaterial({color:0x241712,roughness:0.85,side:THREE.DoubleSide});
       const back=new THREE.Mesh(new THREE.CircleGeometry(1.0,40),faceMat);
       back.position.set(0,2.9,0); g.add(back);
       const rings=[];
       for(let r=0;r<ringR.length;r++){
         const m=new THREE.Mesh(new THREE.CircleGeometry(ringR[r],36),
-          new THREE.MeshStandardMaterial({color:ringHex[r],roughness:0.7,emissive:0x000000}));
+          new THREE.MeshStandardMaterial({color:ringHex[r],roughness:0.7,emissive:0x000000,side:THREE.DoubleSide}));
         m.position.set(0,2.9,0.01+r*0.01); g.add(m); rings.push(m);
       }
       // a "hit core" mesh used purely as the raycast picker (whole disc)
       const pick=new THREE.Mesh(new THREE.CircleGeometry(1.0,8),
-        new THREE.MeshBasicMaterial({visible:false}));
+        new THREE.MeshBasicMaterial({visible:false,side:THREE.DoubleSide}));
       pick.position.set(0,2.9,0.06); g.add(pick);
+      g.visible=false;                                  // hidden until placeTarget() pops it up
       scene.add(g);
       const data={group:g,rings,pick,alive:false,state:'down',t:0,baseY:0,life:0,dist:0};
       g.userData=data;
@@ -247,7 +246,9 @@
       const x=Math.sin(lateral)*t.dist;
       const z=-Math.cos(lateral)*t.dist;
       t.group.position.set(x,0,z);
-      t.group.rotation.y=Math.atan2(-x,-z)+Math.PI;    // face the shooter
+      // disc faces +Z locally; rotate so its front points back at the shooter
+      // (origin). Adding PI here would flip it away and back-face cull the disc.
+      t.group.rotation.y=Math.atan2(-x,-z);            // face the shooter
       t.baseY=0;
       // farther targets are worth more but live shorter — risk/reward
       const far=(t.dist-45)/215;                        // 0..1
@@ -330,9 +331,11 @@
       els.score.textContent=0; updAcc();
       els.over.classList.remove('gx-show'); els.pausetag.classList.remove('show');
       clearCallout();
-      // open with a couple of targets so there's something to shoot
+      // open with a target dead ahead so there's something to shoot
       placeTarget(targets[0]);
-      targets[0].group.position.z=-120;                 // a clean opener mid-range
+      targets[0].dist=120;                              // a clean opener mid-range
+      targets[0].group.position.set(0,0,-120);          // straight downrange
+      targets[0].group.rotation.y=0;                    // face the shooter (origin)
       spawnTimer=0.6;
     }
 

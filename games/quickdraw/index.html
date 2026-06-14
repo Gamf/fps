@@ -102,10 +102,13 @@
     document.body.appendChild(renderer.domElement);
 
     const scene=new THREE.Scene();
-    scene.fog=new THREE.Fog(0x2a1c12,16,60);
+    scene.background=new THREE.Color(0x2a1c12);
+    // Fog starts well beyond the bandit row (~15u) and the mesas (~48u) so gameplay
+    // is never hidden; only the distant sky-dome edge fades.
+    scene.fog=new THREE.Fog(0x7a3a2a,70,150);
 
-    // desert dusk sky
-    const skyGeo=new THREE.SphereGeometry(70,24,16);
+    // desert dusk sky (sits beyond fog far / inside camera far so it renders clean)
+    const skyGeo=new THREE.SphereGeometry(200,24,16);
     const skyMat=new THREE.ShaderMaterial({side:THREE.BackSide,uniforms:{
       top:{value:new THREE.Color(0x251733)},mid:{value:new THREE.Color(0x7a3a2a)},bot:{value:new THREE.Color(0xe8a45a)}},
       vertexShader:`varying vec3 v; void main(){ v=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);} `,
@@ -115,15 +118,14 @@
           gl_FragColor=vec4(c,1.0);} `});
     scene.add(new THREE.Mesh(skyGeo,skyMat));
 
-    const camera=new THREE.PerspectiveCamera(70,1,0.1,120); camera.position.set(0,1.6,6);
+    const camera=new THREE.PerspectiveCamera(70,1,0.1,300); camera.position.set(0,1.6,6);
     let yaw=0,pitch=-0.02;
 
     // desert floor
     const floor=new THREE.Mesh(new THREE.PlaneGeometry(220,220),
       new THREE.MeshStandardMaterial({color:0x6b4226,roughness:1,metalness:0}));
     floor.rotation.x=-Math.PI/2; floor.receiveShadow=true; scene.add(floor);
-    const grid=new THREE.GridHelper(220,80,0x7c5230,0x5a3a22); grid.position.y=0.01;
-    grid.material.transparent=true; grid.material.opacity=0.25; scene.add(grid);
+    // (no GridHelper — plain solid desert ground, no visible grid lines)
 
     // distant mesa silhouettes
     const mesaMat=new THREE.MeshStandardMaterial({color:0x3a2417,roughness:1});
@@ -158,8 +160,8 @@
       // post
       const post=new THREE.Mesh(postGeo,new THREE.MeshStandardMaterial({color:0x4a3420,roughness:1}));
       post.position.y=0.7; post.castShadow=true; g.add(post);
-      // board (the silhouette body)
-      const bodyMat=new THREE.MeshStandardMaterial({color:0x2c2c34,roughness:0.8,emissive:0x000000});
+      // board (the silhouette body) — mid grey-blue so it reads clearly against the desert
+      const bodyMat=new THREE.MeshStandardMaterial({color:0x55586a,roughness:0.8,emissive:0x14161e});
       const body=new THREE.Mesh(boardGeo,bodyMat);
       body.position.y=2.45; body.castShadow=true; g.add(body);
       // hat
@@ -185,8 +187,8 @@
         b.userData.badgeMat.color.setHex(0xffd24a);
         b.userData.badgeMat.emissive.setHex(0xff7a2a);
       }else{
-        b.userData.bodyMat.color.setHex(0x2c2c34);
-        b.userData.bodyMat.emissive.setHex(0x000000);
+        b.userData.bodyMat.color.setHex(0x55586a);
+        b.userData.bodyMat.emissive.setHex(0x14161e);
         b.userData.badgeMat.color.setHex(0x554433);
         b.userData.badgeMat.emissive.setHex(0x000000);
       }

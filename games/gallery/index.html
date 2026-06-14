@@ -20,12 +20,12 @@
 
     /* crosshair reticle */
     .cross { position: fixed; top: 50%; left: 50%; width: 30px; height: 30px;
-      margin: -15px 0 0 -15px; z-index: 4; pointer-events: none;
+      transform: translate(-50%, -50%); z-index: 4; pointer-events: none;
       filter: drop-shadow(0 0 5px rgba(224,85,107,.85)); transition: transform .07s ease-out; }
-    .cross.kick { transform: scale(.78); }
+    .cross.kick { transform: translate(-50%, -50%) scale(.78); }
     .cross::before, .cross::after { content: ""; position: absolute; background: #ffd2da; opacity: .92; border-radius: 2px; }
-    .cross::before { left: 14px; top: 0; width: 2px; height: 30px; }
-    .cross::after { top: 14px; left: 0; height: 2px; width: 30px; }
+    .cross::before { left: 50%; top: 0; width: 2px; height: 30px; margin-left: -1px; }
+    .cross::after { top: 50%; left: 0; height: 2px; width: 30px; margin-top: -1px; }
     .cross span { position: absolute; inset: 4px; border: 2px solid rgba(224,85,107,.6); border-radius: 50%; }
 
     /* combo banner (center-top) */
@@ -159,8 +159,7 @@
     const floor = new THREE.Mesh(new THREE.PlaneGeometry(120, 120),
       new THREE.MeshStandardMaterial({ color: 0x2a1d22, roughness: 0.92, metalness: 0.05 }));
     floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
-    const grid = new THREE.GridHelper(120, 60, 0x4a2f3a, 0x271a22); grid.position.y = 0.01;
-    grid.material.transparent = true; grid.material.opacity = 0.35; scene.add(grid);
+    // (no grid: users disliked the visible grid lines — the plain solid floor above is the ground)
 
     // back wall of the booth
     const wall = new THREE.Mesh(new THREE.PlaneGeometry(60, 26),
@@ -203,9 +202,12 @@
       // rings as flat cylinders stacked slightly in z
       for (let r = 0; r < 5; r++) {
         const rr = radius * (1 - r * 0.18);
+        // double-sided + a healthy emissive so the bullseye is always visible,
+        // regardless of which way it spins or how the lights happen to fall.
         const disc = new THREE.Mesh(new THREE.CircleGeometry(rr, 28),
           new THREE.MeshStandardMaterial({ color: RING_COLORS[r], roughness: 0.5, metalness: 0.1,
-            emissive: new THREE.Color(RING_COLORS[r]).multiplyScalar(0.12) }));
+            side: THREE.DoubleSide,
+            emissive: new THREE.Color(RING_COLORS[r]).multiplyScalar(0.35) }));
         disc.position.z = 0.012 * r; g.add(disc);
       }
       // rim
@@ -462,9 +464,8 @@
           t.position.x += d.dir * d.speed * dt;
           d.bob += dt * 2;
           t.position.y += Math.sin(d.bob) * d.wobble * dt;
-          t.rotation.z += dt * 0.4 * d.dir;
-          // billboard the disc toward the camera (yaw only) for readability
-          t.rotation.y = 0;
+          // billboard the bullseye so its face is always turned toward the camera
+          t.lookAt(camera.position);
           if ((d.dir > 0 && t.position.x > 20) || (d.dir < 0 && t.position.x < -20)) {
             scene.remove(t); targets.splice(i, 1);
           }

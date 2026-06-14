@@ -128,8 +128,7 @@
     const field=new THREE.Mesh(new THREE.PlaneGeometry(600,600),
       new THREE.MeshStandardMaterial({color:0x2c3a1c,roughness:1}));
     field.rotation.x=-Math.PI/2; field.position.y=0; field.receiveShadow=true; scene.add(field);
-    const grid=new THREE.GridHelper(600,120,0x4a5a2e,0x33401f); grid.position.y=0.02;
-    grid.material.transparent=true; grid.material.opacity=0.35; scene.add(grid);
+    // (No GridHelper — players disliked the grid lines; a plain solid ground reads cleaner.)
 
     // Distant tree-line silhouette (a low dark band of boxes) for depth.
     const treeMat=new THREE.MeshBasicMaterial({color:0x1c1208,fog:true});
@@ -217,8 +216,9 @@
       const zsign=rand()<0.55?1:-1;    // some come toward you, some go out
       const vel=new THREE.Vector3(vx, vy, zsign*vz*0.6);
       // normalize-ish to keep a consistent feel scaled by speed
+      const col=CLAY_COLORS[Math.floor(rand()*CLAY_COLORS.length)];
       const m=new THREE.Mesh(clayGeo,new THREE.MeshStandardMaterial(
-        {color:CLAY_COLORS[Math.floor(rand()*CLAY_COLORS.length)],...clayMatBase}));
+        {color:col,emissive:col,emissiveIntensity:0.35,...clayMatBase}));
       m.castShadow=true; m.position.copy(start);
       m.userData.v=vel; m.userData.spin=rrand(8,16)*(rand()<0.5?-1:1);
       m.userData.alive=true; m.userData.t=0;
