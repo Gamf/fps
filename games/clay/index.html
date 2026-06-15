@@ -90,9 +90,10 @@
   <script type="importmap">
     { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
   </script>
+  <script src="../../gamf-controls.js"></script>
   <script type="module">
     import * as THREE from 'three';
-    import { onDrag, onTap } from './touch.js';
+    import { onDrag } from './touch.js';
 
     const SLUG='clay', BEST_KEY='gamf-fps-'+SLUG+'-best';
 
@@ -307,7 +308,6 @@
         updateHud();
       }
     }
-    onTap(renderer.domElement,fire);
 
     function onMiss(){ /* a clay fell unbroken — already counted as thrown */ }
 
@@ -409,6 +409,15 @@
     document.getElementById('gxHelpOpen').addEventListener('click',showHelp);
     document.getElementById('gxHelpClose').addEventListener('click',hideHelp);
     helpEl.addEventListener('click',e=>{ if(e.target===helpEl) hideHelp(); });
+
+    // ---- On-screen action buttons (drag still aims; all discrete actions are buttons) ----
+    window.gamfControls({
+      actions:[
+        { label:'Fire',  press:fire },
+        { label:'Pause', press:togglePause },
+        { label:'Reset', press:reset },
+      ],
+    });
 
     reset(); requestAnimationFrame(animate);
 

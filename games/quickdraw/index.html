@@ -50,10 +50,10 @@
     <button class="gx-help__open" id="gxHelpOpen" aria-label="How to play"><svg class="gx-ico"><use href="#i-info"/></svg></button>
   </header>
   <div class="cross"><span></span></div>
-  <div class="callout standby" id="callout"><div class="big" id="calloutBig">READY</div><div class="sub" id="calloutSub">Tap / Space to begin the duel</div></div>
+  <div class="callout standby" id="callout"><div class="big" id="calloutBig">READY</div><div class="sub" id="calloutSub">Fire / Space to begin the duel</div></div>
   <div class="gx-hint">
     <span class="gx-hint__chip"><svg class="gx-ico"><use href="#i-touch"/></svg> Drag / arrows to aim</span>
-    <span class="gx-hint__chip"><svg class="gx-ico"><use href="#i-touch"/></svg> Tap / Space to fire</span>
+    <span class="gx-hint__chip"><svg class="gx-ico"><use href="#i-touch"/></svg> Fire button / Space to shoot</span>
     <span class="gx-hint__chip"><svg class="gx-ico"><use href="#i-pause"/></svg> P pause · R restart</span>
   </div>
   <div class="pausetag" id="pausetag">PAUSED</div>
@@ -73,7 +73,7 @@
       <p class="gx-help__obj">Wait for the bandit to light up, then aim at the marked gunman and fire faster than he can — but never draw before DRAW!.</p>
       <ul class="gx-help__list">
         <li><b>Swipe / Arrows</b> <span>Aim</span></li>
-        <li><b>Tap / Space</b> <span>Fire at the lit bandit</span></li>
+        <li><b>Fire / Space</b> <span>Fire at the lit bandit</span></li>
         <li><b>P</b> <span>Pause</span></li>
         <li><b>R</b> <span>Restart</span></li>
       </ul>
@@ -83,9 +83,10 @@
   <script type="importmap">
     { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
   </script>
+  <script src="../../gamf-controls.js"></script>
   <script type="module">
     import * as THREE from 'three';
-    import { onDrag, onTap } from './touch.js';
+    import { onDrag } from './touch.js';
 
     const SLUG='quickdraw', BEST_KEY='gamf-fps-'+SLUG+'-best';
 
@@ -329,7 +330,9 @@
     const ray=new THREE.Raycaster();
     onDrag(renderer.domElement,{move:({dx,dy})=>{ if(paused) return;
       yaw-=dx*0.0035; pitch-=dy*0.0035; pitch=Math.max(-0.5,Math.min(0.5,pitch)); }});
-    onTap(renderer.domElement,()=>shoot());
+    // Drag handles aim; the discrete fire action lives on its own on-screen button
+    // (tap-anywhere-to-fire is removed because it fought the drag-aim gesture).
+    window.gamfControls({ actions:[ { label:'Fire', press:()=>shoot() } ] });
 
     function togglePause(){ if(!running||helpOpen()) return; paused=!paused; els.pausetag.classList.toggle('show',paused); }
 

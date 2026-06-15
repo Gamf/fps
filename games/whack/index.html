@@ -58,8 +58,8 @@
   </div>
 
   <div class="gx-hint">
-    <span class="gx-hint__chip"><svg class="gx-ico"><use href="#i-target"/></svg> Tap / arrows to aim</span>
-    <span class="gx-hint__chip"><svg class="gx-ico"><use href="#i-bolt"/></svg> Tap / space to whack</span>
+    <span class="gx-hint__chip"><svg class="gx-ico"><use href="#i-target"/></svg> D-pad / arrows to aim</span>
+    <span class="gx-hint__chip"><svg class="gx-ico"><use href="#i-bolt"/></svg> Whack button / space</span>
     <span class="gx-hint__chip"><svg class="gx-ico"><use href="#i-pause"/></svg> P pause · R restart</span>
   </div>
 
@@ -82,8 +82,8 @@
       <div class="gx-modal__title">HOW TO PLAY</div>
       <p class="gx-help__obj">Whack the moles that pop up to score before the timer runs out — but avoid the bombs.</p>
       <ul class="gx-help__list">
-        <li><b>Tap / Arrows</b> <span>Aim a hole</span></li>
-        <li><b>Tap / Space</b> <span>Whack the mole</span></li>
+        <li><b>D-pad / Arrows</b> <span>Aim a hole</span></li>
+        <li><b>Whack / Space</b> <span>Whack the mole</span></li>
         <li><b>Gold mole</b> <span>Bonus points</span></li>
         <li><b>Red bomb</b> <span>Avoid — penalty</span></li>
         <li><b>P</b> <span>Pause</span></li>
@@ -96,9 +96,10 @@
   <script type="importmap">
     { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
   </script>
+  <script src="../../gamf-controls.js"></script>
   <script type="module">
     import * as THREE from 'three';
-    import { onDrag, onTap } from './touch.js';
+    import { onDrag } from './touch.js';
 
     const SLUG='whack', BEST_KEY='gamf-fps-'+SLUG+'-best';
     const GAME_TIME=30;
@@ -350,9 +351,8 @@
     let reticlePulse=0;
 
     // ---- Input: touch ----
-    onTap(renderer.domElement,(x,y)=>{ if(!started||helpOpen()){ return; }
-      const idx=holeAtPointer(x,y); if(idx>=0) whack(idx); });
-    // drag nudges the reticle between holes
+    // Discrete actions live on on-screen buttons (see gamfControls below), never
+    // tap-anywhere — that fights drag-aim. Drag here only nudges the reticle/aim.
     onDrag(renderer.domElement,{ move:({x,y})=>{ if(paused||!running) return;
       const idx=holeAtPointer(x,y); if(idx>=0) aimIndex=idx; }});
 
@@ -373,6 +373,22 @@
 
     function togglePause(){ if(!running) return; paused=!paused;
       pausetagEl.classList.toggle('show',paused); }
+
+    // ---- Input: on-screen buttons (shared helper) ----
+    // Aim is step-based (move to the next hole), so the D-pad is non-repeating.
+    // Whack is the only discrete action — wired to the same fn as Space/Enter.
+    window.gamfControls({
+      move:{
+        left:()=>{ if(!started||paused||!running||helpOpen()) return; aimMove(-1,0); },
+        right:()=>{ if(!started||paused||!running||helpOpen()) return; aimMove(1,0); },
+        up:()=>{ if(!started||paused||!running||helpOpen()) return; aimMove(0,-1); },
+        down:()=>{ if(!started||paused||!running||helpOpen()) return; aimMove(0,1); },
+      },
+      hold:false,
+      actions:[
+        { label:'Whack', press:()=>{ if(!started||paused||!running||helpOpen()) return; whack(aimIndex); } },
+      ],
+    });
 
     // ---- Resize ----
     function resize(){ const w=innerWidth,h=innerHeight; renderer.setSize(w,h);

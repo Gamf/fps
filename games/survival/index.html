@@ -95,9 +95,10 @@
   <script type="importmap">
     { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
   </script>
+  <script src="../../gamf-controls.js"></script>
   <script type="module">
     import * as THREE from 'three';
-    import { onDrag, onTap } from './touch.js';
+    import { onDrag } from './touch.js';
 
     const SLUG='survival', BEST_KEY='gamf-fps-'+SLUG+'-best';
 
@@ -279,7 +280,6 @@
       scene.remove(obj); enemies.splice(i,1); killsThisWave++;
       if(killsThisWave>=killNeed){ wave++; startWave(); }
     }
-    onTap(renderer.domElement,fire);
 
     function takeHit(){ lives--; renderLives();
       hurtEl.classList.add('show'); setTimeout(()=>hurtEl.classList.remove('show'),130);
@@ -311,6 +311,17 @@
       document.getElementById('newbest').textContent=isBest?'★ New best!':'';
       overEl.classList.add('gx-show'); }
     document.getElementById('again').onclick=reset;
+
+    // ---- on-screen action buttons (drag still handles look/aim) ----
+    // Discrete actions get buttons so they never fight drag-aim. Each wired to
+    // the same function the keyboard uses (Space/Enter=fire, P=pause, R=restart).
+    window.gamfControls({
+      actions:[
+        { label:'Fire', press:fire },
+        { label:'Pause', press:togglePause },
+        { label:'Restart', press:reset },
+      ],
+    });
 
     // ---- main loop ----
     let prev=0;

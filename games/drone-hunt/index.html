@@ -74,9 +74,10 @@
   <script type="importmap">
     { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
   </script>
+  <script src="../../gamf-controls.js"></script>
   <script type="module">
     import * as THREE from 'three';
-    import { onDrag, onTap } from './touch.js';
+    import { onDrag } from './touch.js';
 
     const SLUG='drone-hunt', BEST_KEY='gamf-fps-'+SLUG+'-best';
 
@@ -219,7 +220,6 @@
         scene.remove(obj); drones.splice(i,1); killsThisWave++;
         if(killsThisWave>=killNeed){ wave++; startWave(); }
       } }
-    onTap(renderer.domElement,fire);
 
     function takeHit(){ lives--; renderLives();
       hurtEl.classList.add('show'); setTimeout(()=>hurtEl.classList.remove('show'),130);
@@ -302,6 +302,16 @@
     document.getElementById('gxHelpOpen').addEventListener('click',showHelp);
     document.getElementById('gxHelpClose').addEventListener('click',hideHelp);
     helpEl.addEventListener('click',e=>{ if(e.target===helpEl) hideHelp(); });
+
+    // ---- On-screen action buttons (drag still handles look/aim) ----
+    // Every discrete action is a button — no tap-anywhere (it fights drag-aim).
+    window.gamfControls({
+      actions:[
+        { label:'Restart', press:reset },
+        { label:'Pause', press:togglePause },
+        { label:'Fire', press:fire },
+      ]
+    });
 
     reset(); requestAnimationFrame(animate);
     if(!localStorage.getItem(SEEN_KEY)){ localStorage.setItem(SEEN_KEY,'1'); showHelp(); }

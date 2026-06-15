@@ -106,11 +106,11 @@
 
   <div class="breath" id="breath"><i id="breathFill"></i></div>
 
-  <div class="callout ready show" id="callout"><div class="big" id="calloutBig">SNIPER</div><div class="sub" id="calloutSub">Hold to scope · tap to fire</div></div>
+  <div class="callout ready show" id="callout"><div class="big" id="calloutBig">SNIPER</div><div class="sub" id="calloutSub">Zoom to scope · Fire to shoot</div></div>
 
   <div class="gx-hint">
-    <span class="gx-hint__chip"><svg class="gx-ico"><use href="#i-target"/></svg> Hold / arrows to zoom</span>
-    <span class="gx-hint__chip"><svg class="gx-ico"><use href="#i-bolt"/></svg> Tap / Space to fire</span>
+    <span class="gx-hint__chip"><svg class="gx-ico"><use href="#i-target"/></svg> Zoom btn / Up · W to zoom</span>
+    <span class="gx-hint__chip"><svg class="gx-ico"><use href="#i-bolt"/></svg> Fire btn / Space to fire</span>
     <span class="gx-hint__chip"><svg class="gx-ico"><use href="#i-pause"/></svg> P pause · R restart</span>
   </div>
 
@@ -134,8 +134,8 @@
       <p class="gx-help__obj">Steady your scope and drop the pop-up targets downrange before too many slip away.</p>
       <ul class="gx-help__list">
         <li><b>Drag / Arrows</b> <span>Aim left &amp; right</span></li>
-        <li><b>Hold / Up · W</b> <span>Zoom &amp; steady scope</span></li>
-        <li><b>Tap / Space</b> <span>Fire</span></li>
+        <li><b>Zoom btn / Up · W</b> <span>Zoom &amp; steady scope</span></li>
+        <li><b>Fire btn / Space</b> <span>Fire</span></li>
         <li><b>P</b> <span>Pause</span></li>
         <li><b>R</b> <span>Restart</span></li>
       </ul>
@@ -146,9 +146,10 @@
   <script type="importmap">
     { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
   </script>
+  <script src="../../gamf-controls.js"></script>
   <script type="module">
     import * as THREE from 'three';
-    import { onDrag, onTap } from './touch.js';
+    import { onDrag } from './touch.js';
 
     const SLUG='sniper', BEST_KEY='gamf-fps-'+SLUG+'-best';
 
@@ -411,7 +412,8 @@
     }
 
     /* ---------- input ---------- */
-    onTap(renderer.domElement,()=>fire());
+    // NOTE: tap-anywhere-to-fire removed — it fought drag-aim. Fire is now an
+    // on-screen action button (see window.gamfControls below). Keyboard still fires.
     // dragging fine-aims; press-and-hold (without much drag) zooms the scope.
     onDrag(renderer.domElement,{
       start:()=>{ if(!paused){ zooming=true; } },
@@ -457,6 +459,22 @@
     function resize(){ renderer.setSize(innerWidth,innerHeight);
       camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); }
     addEventListener('resize',resize); resize();
+
+    /* ---------- on-screen action buttons (drag stays for look/aim) ----------
+       Every discrete action is a button — never tap-anywhere (it fights drag-aim).
+       Each wires to the SAME function the keyboard uses:
+         Fire  -> fire()             (Space / Enter)
+         Zoom  -> sets `zooming`     (hold; mirrors drag-press & Up/W scope zoom)
+         Pause -> togglePause()      (P)
+         Reset -> reset()            (R) */
+    window.gamfControls({
+      actions:[
+        { label:'Zoom', press:()=>{ if(!paused) zooming=true; }, release:()=>{ zooming=false; } },
+        { label:'Reset', press:()=>reset() },
+        { label:'Pause', press:()=>togglePause() },
+        { label:'Fire', press:()=>fire() },
+      ]
+    });
 
     function gameOver(){
       running=false;
