@@ -3,36 +3,35 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-  <meta name="theme-color" content="#07080c">
+  <meta name="theme-color" content="#3a2c20">
   <title>Quickdraw — Gamf</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,900;1,9..144,400&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../../gamf.css">
   <style>
-    body { --gx-accent: #ffae3c; }
+    body { --gx-accent: #9b3a22; }
     html,body{height:100%;overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none}
-    body{background:#120c08}
+    body{background:#3a2c20}
     canvas{display:block;width:100%;height:100%;touch-action:none}
-    /* crosshair */
-    .cross{position:fixed;top:50%;left:50%;width:30px;height:30px;margin:-15px 0 0 -15px;z-index:4;pointer-events:none;
-      filter:drop-shadow(0 0 5px rgba(255,174,60,.85))}
-    .cross::before,.cross::after{content:"";position:absolute;background:#ffd79a;opacity:.95}
+    /* crosshair — flat printed reticle, no glow */
+    .cross{position:fixed;top:50%;left:50%;width:30px;height:30px;margin:-15px 0 0 -15px;z-index:4;pointer-events:none}
+    .cross::before,.cross::after{content:"";position:absolute;background:#efe6d2;opacity:.92}
     .cross::before{left:14px;top:0;width:2px;height:30px}.cross::after{top:14px;left:0;height:2px;width:30px}
-    .cross span{position:absolute;inset:4px;border:2px solid rgba(255,200,130,.55);border-radius:50%}
+    .cross span{position:absolute;inset:4px;border:2px solid rgba(239,230,210,.55);border-radius:50%}
     /* big centre call-out: STANDBY / DRAW! / reaction time */
     .callout{position:fixed;top:34%;left:50%;transform:translate(-50%,-50%);z-index:5;text-align:center;
-      font-family:var(--gx-font-display);font-weight:700;letter-spacing:.04em;pointer-events:none;
-      text-shadow:0 4px 18px rgba(0,0,0,.7);transition:opacity .12s}
+      font-family:var(--display);font-weight:900;letter-spacing:.02em;pointer-events:none;
+      text-shadow:0 2px 6px rgba(40,28,10,.45);transition:opacity .12s}
     .callout .big{font-size:clamp(2.2rem,11vw,4rem);line-height:1}
-    .callout .sub{font-size:var(--fs-md);color:var(--gx-text-2);margin-top:6px;font-weight:600}
-    .callout.standby .big{color:#cdb89a}
-    .callout.draw .big{color:#ff5d4a;animation:flash .5s ease}
-    .callout.good .big{color:#5fe0a0}
-    .callout.bad .big{color:#ff5d6c}
+    .callout .sub{font-size:1rem;color:#efe6d2;margin-top:6px;font-weight:500;font-family:var(--body);font-style:italic}
+    .callout.standby .big{color:#efe6d2}
+    .callout.draw .big{color:#9b3a22;animation:flash .5s ease}
+    .callout.good .big{color:#c8923a}
+    .callout.bad .big{color:#9b3a22}
     @keyframes flash{from{transform:scale(.6);opacity:.2}to{transform:scale(1);opacity:1}}
     .pausetag{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:5;
-      font-family:var(--gx-font-display);font-weight:700;font-size:1.4rem;color:#e6d4ba;letter-spacing:.12em;display:none}
+      font-family:var(--display);font-weight:900;font-size:1.4rem;color:#efe6d2;letter-spacing:.08em;display:none}
     .pausetag.show{display:block}
     /* hearts (lives) */
     .lives{display:inline-flex;gap:3px;font-size:.95em;line-height:1}
@@ -102,33 +101,23 @@
     document.body.appendChild(renderer.domElement);
 
     const scene=new THREE.Scene();
-    scene.background=new THREE.Color(0x2a1c12);
-    // Fog starts well beyond the bandit row (~15u) and the mesas (~48u) so gameplay
-    // is never hidden; only the distant sky-dome edge fades.
-    scene.fog=new THREE.Fog(0x7a3a2a,70,150);
-
-    // desert dusk sky (sits beyond fog far / inside camera far so it renders clean)
-    const skyGeo=new THREE.SphereGeometry(200,24,16);
-    const skyMat=new THREE.ShaderMaterial({side:THREE.BackSide,uniforms:{
-      top:{value:new THREE.Color(0x251733)},mid:{value:new THREE.Color(0x7a3a2a)},bot:{value:new THREE.Color(0xe8a45a)}},
-      vertexShader:`varying vec3 v; void main(){ v=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);} `,
-      fragmentShader:`varying vec3 v; uniform vec3 top; uniform vec3 mid; uniform vec3 bot;
-        void main(){ float h=clamp((normalize(v).y+0.15)/1.0,0.0,1.0);
-          vec3 c = h<0.42 ? mix(bot,mid,h/0.42) : mix(mid,top,(h-0.42)/0.58);
-          gl_FragColor=vec4(c,1.0);} `});
-    scene.add(new THREE.Mesh(skyGeo,skyMat));
+    // Solid warm dusk-brown sky — no gradient skydome.
+    scene.background=new THREE.Color(0x3a2c20);
+    // Subtle warm fog matching the background; starts well beyond the bandit row
+    // (~15u) and the mesas (~48u) so gameplay is never hidden, only the far edge.
+    scene.fog=new THREE.Fog(0x3a2c20,70,160);
 
     const camera=new THREE.PerspectiveCamera(70,1,0.1,300); camera.position.set(0,1.6,6);
     let yaw=0,pitch=-0.02;
 
-    // desert floor
+    // warm desert floor — plain matte clay, no grid
     const floor=new THREE.Mesh(new THREE.PlaneGeometry(220,220),
-      new THREE.MeshStandardMaterial({color:0x6b4226,roughness:1,metalness:0}));
+      new THREE.MeshStandardMaterial({color:0xa4623a,roughness:1,metalness:0}));
     floor.rotation.x=-Math.PI/2; floor.receiveShadow=true; scene.add(floor);
     // (no GridHelper — plain solid desert ground, no visible grid lines)
 
-    // distant mesa silhouettes
-    const mesaMat=new THREE.MeshStandardMaterial({color:0x3a2417,roughness:1});
+    // distant mesa silhouettes — warm brown, matte
+    const mesaMat=new THREE.MeshStandardMaterial({color:0x4a3b2a,roughness:1});
     for(let i=0;i<7;i++){
       const w=range(6,14), h=range(4,11);
       const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,3),mesaMat);
@@ -137,13 +126,12 @@
       scene.add(m);
     }
 
-    // lights — warm dusk key + cool fill
-    scene.add(new THREE.HemisphereLight(0xffd9a8,0x3a2030,0.7));
-    const dl=new THREE.DirectionalLight(0xffc070,1.15); dl.position.set(-8,11,6);
+    // lights — one gentle warm directional + soft warm hemisphere; no neon point-lights
+    scene.add(new THREE.HemisphereLight(0xe9dcc0,0x5a4632,0.85));
+    const dl=new THREE.DirectionalLight(0xf0dcb4,1.0); dl.position.set(-8,11,6);
     dl.castShadow=true; dl.shadow.mapSize.set(1024,1024);
     dl.shadow.camera.left=-20; dl.shadow.camera.right=20; dl.shadow.camera.top=20; dl.shadow.camera.bottom=-20;
     scene.add(dl);
-    scene.add(new THREE.PointLight(0x5a78ff,0.35,80));
 
     /* ---------- bandit cut-outs in a row ---------- */
     // Each bandit is a flat board (fence-post target). Lit ones are "hostile".
@@ -158,18 +146,18 @@
     function makeBandit(x){
       const g=new THREE.Group();
       // post
-      const post=new THREE.Mesh(postGeo,new THREE.MeshStandardMaterial({color:0x4a3420,roughness:1}));
+      const post=new THREE.Mesh(postGeo,new THREE.MeshStandardMaterial({color:0x4a3b2a,roughness:1}));
       post.position.y=0.7; post.castShadow=true; g.add(post);
-      // board (the silhouette body) — mid grey-blue so it reads clearly against the desert
-      const bodyMat=new THREE.MeshStandardMaterial({color:0x55586a,roughness:0.8,emissive:0x14161e});
+      // board (the silhouette body) — warm olive plank, matte, reads against clay desert
+      const bodyMat=new THREE.MeshStandardMaterial({color:0x6f6a3b,roughness:0.9,metalness:0});
       const body=new THREE.Mesh(boardGeo,bodyMat);
       body.position.y=2.45; body.castShadow=true; g.add(body);
-      // hat
-      const hatMat=new THREE.MeshStandardMaterial({color:0x1a1a1f,roughness:0.9});
+      // hat — warm dark brown, matte
+      const hatMat=new THREE.MeshStandardMaterial({color:0x2c2218,roughness:0.95});
       const brim=new THREE.Mesh(brimGeo,hatMat); brim.position.y=3.78; g.add(brim);
       const crown=new THREE.Mesh(hatGeo,hatMat); crown.position.y=3.95; g.add(crown);
-      // badge / bullseye on chest (glows when hostile)
-      const badgeMat=new THREE.MeshStandardMaterial({color:0x554433,emissive:0x000000,roughness:0.4,metalness:0.3});
+      // badge / bullseye on chest (changes to ochre when hostile — color, not glow)
+      const badgeMat=new THREE.MeshStandardMaterial({color:0x4a3b2a,roughness:0.6,metalness:0});
       const badge=new THREE.Mesh(badgeGeo,badgeMat); badge.position.set(0,2.5,0.1); g.add(badge);
       g.position.set(x,0,-9);
       g.userData={body,bodyMat,badge,badgeMat,hostile:false,baseX:x,downT:0};
@@ -182,15 +170,13 @@
     function setHostile(b,on){
       b.userData.hostile=on;
       if(on){
-        b.userData.bodyMat.color.setHex(0x7a1f2a);
-        b.userData.bodyMat.emissive.setHex(0x521018);
-        b.userData.badgeMat.color.setHex(0xffd24a);
-        b.userData.badgeMat.emissive.setHex(0xff7a2a);
+        // honest warm color shift — oxblood body, ochre badge; no emissive glow
+        b.userData.bodyMat.color.setHex(0x9b3a22);
+        b.userData.badgeMat.color.setHex(0xc8923a);
       }else{
-        b.userData.bodyMat.color.setHex(0x55586a);
-        b.userData.bodyMat.emissive.setHex(0x14161e);
-        b.userData.badgeMat.color.setHex(0x554433);
-        b.userData.badgeMat.emissive.setHex(0x000000);
+        b.userData.bodyMat.color.setHex(0x6f6a3b);
+        b.userData.badgeMat.color.setHex(0x4a3b2a);
+        b.userData.badge.scale.setScalar(1);
       }
     }
     // knock a bandit board flat (hit feedback)
@@ -216,8 +202,8 @@
         if(p.userData.life<=0){ scene.remove(p); bursts.splice(i,1); }
       }
     }
-    // muzzle flash light
-    const muzzle=new THREE.PointLight(0xffd070,0,8); muzzle.position.set(0,1.4,4.5); scene.add(muzzle);
+    // muzzle flash light — brief warm gameplay flash on fire (not ambient neon)
+    const muzzle=new THREE.PointLight(0xe9c98a,0,8); muzzle.position.set(0,1.4,4.5); scene.add(muzzle);
 
     /* ---------- game state ---------- */
     const els={score:document.getElementById('score'),best:document.getElementById('best'),
@@ -276,7 +262,7 @@
     }
     function endRoundGood(rt){
       const b=bandits[armedIdx];
-      burst(b.position.clone().setY(2.5),0xffd24a);
+      burst(b.position.clone().setY(2.5),0xc8923a);
       dropBandit(b); setHostile(b,false);
       combo++;
       // score: faster = more, plus combo bonus
@@ -315,7 +301,7 @@
         }else{
           // shot the wrong target or empty air during a draw
           loseLife(hitGroup?'WRONG MAN':'MISSED');
-          if(hitGroup) { burst(hitGroup.position.clone().setY(2.5),0xff5d6c); dropBandit(hitGroup); }
+          if(hitGroup) { burst(hitGroup.position.clone().setY(2.5),0x9b3a22); dropBandit(hitGroup); }
         }
       }else if(phase==='standby'){
         // drew too early — itchy trigger finger
@@ -401,9 +387,11 @@
         if(phase==='standby'){
           if(phaseT>=drawDelay) beginDraw();
         }else if(phase==='draw'){
-          // gentle hostile pulse
-          const pulse=0.4+0.4*Math.sin(now*12);
-          if(armedIdx>=0) bandits[armedIdx].userData.badgeMat.emissive.setRGB(1*pulse,0.45*pulse,0.1*pulse);
+          // gentle hostile pulse — a subtle badge scale (no glow/emissive bloom)
+          if(armedIdx>=0){
+            const pulse=1+0.18*Math.sin(now*12);
+            bandits[armedIdx].userData.badge.scale.setScalar(pulse);
+          }
           if(phaseT>=reactLimit){ loseLife('TOO SLOW'); }
         }else if(phase==='result'){
           if(phaseT>=0.9){ roundN++; beginStandby(); }

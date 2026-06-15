@@ -3,29 +3,27 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-  <meta name="theme-color" content="#07080c">
+  <meta name="theme-color" content="#e9dcc0">
   <title>Drone Hunt — Gamf</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,900;1,9..144,400&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../../gamf.css">
   <style>
-    body { --gx-accent: #e0556b; }
     html,body{height:100%;overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none}
-    body{background:#0e0f13}
+    body{background:#e9dcc0}
     .wavetag{position:fixed;top:calc(env(safe-area-inset-top) + 52px);left:0;right:0;text-align:center;
-      z-index:4;pointer-events:none;color:var(--gx-brand-2);font-family:var(--gx-font-display);font-weight:700;
+      z-index:4;pointer-events:none;color:var(--accent);font-family:var(--display);font-weight:900;
       font-size:1.4rem;opacity:0;transition:opacity .3s}
     .wavetag.show{opacity:1}
-    .cross{position:fixed;top:50%;left:50%;width:26px;height:26px;margin:-13px 0 0 -13px;z-index:4;pointer-events:none;
-      filter:drop-shadow(0 0 5px rgba(224,85,107,.85))}
-    .cross::before,.cross::after{content:"";position:absolute;background:#ffd2da;opacity:.92}
+    .cross{position:fixed;top:50%;left:50%;width:26px;height:26px;margin:-13px 0 0 -13px;z-index:4;pointer-events:none}
+    .cross::before,.cross::after{content:"";position:absolute;background:var(--accent);opacity:.9}
     .cross::before{left:12px;top:0;width:2px;height:26px}.cross::after{top:12px;left:0;height:2px;width:26px}
-    .cross span{position:absolute;inset:0;border:2px solid rgba(224,85,107,.55);border-radius:50%}
+    .cross span{position:absolute;inset:0;border:2px solid rgba(155,58,34,.6);border-radius:50%}
     .pausetag{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:5;
-      font-family:var(--gx-font-display);font-weight:700;font-size:1.4rem;color:#cdd6ee;letter-spacing:.1em;display:none}
+      font-family:var(--display);font-weight:900;font-size:1.4rem;color:var(--ink);letter-spacing:.1em;display:none}
     .pausetag.show{display:block}
-    .hurt{position:fixed;inset:0;z-index:4;pointer-events:none;background:radial-gradient(circle,transparent 55%,rgba(224,85,107,.45));
+    .hurt{position:fixed;inset:0;z-index:4;pointer-events:none;background:rgba(155,58,34,.32);
       opacity:0;transition:opacity .12s}
     .hurt.show{opacity:1}
     canvas{display:block;width:100%;height:100%;touch-action:none}
@@ -88,33 +86,26 @@
     document.body.appendChild(renderer.domElement);
 
     const scene=new THREE.Scene();
-    // Gradient skybox.
-    const skyMat=new THREE.ShaderMaterial({side:THREE.BackSide,uniforms:{
-      top:{value:new THREE.Color(0x111c30)},bot:{value:new THREE.Color(0x06080d)}},
-      vertexShader:`varying vec3 v; void main(){ v=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);} `,
-      fragmentShader:`varying vec3 v; uniform vec3 top; uniform vec3 bot;
-        void main(){ float h=clamp((normalize(v).y+0.35),0.0,1.0); gl_FragColor=vec4(mix(bot,top,h),1.0);} `});
-    scene.add(new THREE.Mesh(new THREE.SphereGeometry(180,24,16),skyMat));
-    // Light, distance-only haze so drones stay clearly visible at their spawn
-    // distance (~70-95 units). The previous density (0.018) fogged targets out
-    // almost completely the moment they appeared.
-    scene.fog=new THREE.FogExp2(0x0a0e16,0.0042);
+    // Solid warm cream sky — no gradient skydome (GAMF Quarterly: theme, not gradients).
+    scene.background=new THREE.Color(0xe9dcc0);
+    // Subtle, warm distance haze matching the sky so drones fade gently — never
+    // fully fog out at their spawn distance (~70-95 units).
+    scene.fog=new THREE.FogExp2(0xe9dcc0,0.0040);
 
     const camera=new THREE.PerspectiveCamera(74,1,0.1,400); camera.position.set(0,1.6,0);
     let yaw=0,pitch=0;
 
-    // Plain solid ground plane for depth (no grid lines — users disliked the grid).
+    // Plain solid warm ground plane for depth (no grid lines).
     const floor=new THREE.Mesh(new THREE.PlaneGeometry(600,600),
-      new THREE.MeshStandardMaterial({color:0x12182a,roughness:0.95}));
+      new THREE.MeshStandardMaterial({color:0x6f6a3b,roughness:0.98,metalness:0}));
     floor.rotation.x=-Math.PI/2; floor.receiveShadow=true; scene.add(floor);
 
-    // Lighting.
-    scene.add(new THREE.HemisphereLight(0xaecbff,0x1a2236,0.8));
-    const key=new THREE.DirectionalLight(0xffffff,1.0); key.position.set(8,16,6);
+    // Lighting: warm hemisphere (cream sky / olive ground) + one gentle warm key.
+    scene.add(new THREE.HemisphereLight(0xefe6d2,0x4a3b2a,0.9));
+    const key=new THREE.DirectionalLight(0xffe8c4,1.05); key.position.set(8,16,6);
     key.castShadow=true; key.shadow.mapSize.set(1024,1024);
     key.shadow.camera.left=-40; key.shadow.camera.right=40; key.shadow.camera.top=40; key.shadow.camera.bottom=-40;
     key.shadow.camera.far=120; scene.add(key);
-    const rim=new THREE.PointLight(0xe0556b,0.6,80); rim.position.set(-10,8,-20); scene.add(rim);
 
     // Deterministic LCG.
     let seed=1337; const rand=()=> (seed=(seed*1103515245+12345)&0x7fffffff)/0x7fffffff;
@@ -125,13 +116,16 @@
     const eyeGeo=new THREE.SphereGeometry(0.16,10,8);
     function makeDrone(color){
       const g=new THREE.Group();
+      // Honest matte body — no metalness (would render dark without an env map),
+      // no emissive glow. Lit purely by the scene lights.
       const core=new THREE.Mesh(coreGeo,new THREE.MeshStandardMaterial({
-        color,emissive:new THREE.Color(color).multiplyScalar(0.25),metalness:0.7,roughness:0.3}));
+        color,roughness:0.85,metalness:0}));
       core.castShadow=true; g.add(core);
       const ring=new THREE.Mesh(ringGeo,new THREE.MeshStandardMaterial({
-        color:0x2b3658,metalness:0.9,roughness:0.25,emissive:0x101626}));
+        color:0x4a3b2a,roughness:0.8,metalness:0}));
       ring.rotation.x=Math.PI/2; g.add(ring);
-      const eye=new THREE.Mesh(eyeGeo,new THREE.MeshBasicMaterial({color:0xfff2b0}));
+      const eye=new THREE.Mesh(eyeGeo,new THREE.MeshStandardMaterial({
+        color:0xefe6d2,roughness:0.6,metalness:0}));
       eye.position.set(0,0,0.5); g.add(eye);
       g.userData.core=core; g.userData.ring=ring; g.userData.eye=eye;
       return g;
@@ -140,7 +134,7 @@
     const drones=[]; const ARENA_FAR=-95, REACH_Z=-2.2;
     function spawnDrone(speedMul){
       const hot=rand()<0.28;                       // hot drones are fast + worth more
-      const col=hot?0xffb24a:0xe0556b;
+      const col=hot?0xc8923a:0x9b3a22;             // warm ochre / oxblood
       const d=makeDrone(col);
       const ang=(rand()-0.5)*Math.PI*0.9;          // spread across forward arc
       const dist=70+rand()*22;
@@ -152,7 +146,7 @@
     }
 
     // ---- Tracer + muzzle flash ----
-    const tracerMat=new THREE.LineBasicMaterial({color:0x9fd8ff,transparent:true,opacity:0.9});
+    const tracerMat=new THREE.LineBasicMaterial({color:0x7e2f1b,transparent:true,opacity:0.85});
     const tracers=[];
     function tracer(to){
       const from=new THREE.Vector3(0,1.45,0);
@@ -220,7 +214,7 @@
       tracer(end);
       if(hit){ let obj=hit.object; while(obj.parent && drones.indexOf(obj)<0) obj=obj.parent;
         const i=drones.indexOf(obj); if(i<0) return;
-        explode(obj.position, obj.userData.hot?0xffb24a:0xe0556b);
+        explode(obj.position, obj.userData.hot?0xc8923a:0x9b3a22);
         score+=obj.userData.pts; scoreEl.textContent=score;
         scene.remove(obj); drones.splice(i,1); killsThisWave++;
         if(killsThisWave>=killNeed){ wave++; startWave(); }

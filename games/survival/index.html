@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-  <meta name="theme-color" content="#15110e">
+  <meta name="theme-color" content="#3a2c20">
   <title>Survival — Gamf</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -12,7 +12,7 @@
   <style>
     body { --gx-accent: var(--gx-red); }
     html,body{height:100%;overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none}
-    body{background:#15110e}
+    body{background:#3a2c20}
     canvas{display:block;width:100%;height:100%;touch-action:none}
 
     /* wave banner */
@@ -101,8 +101,11 @@
 
     const SLUG='survival', BEST_KEY='gamf-fps-'+SLUG+'-best';
 
-    // --- arcade palette (hex ints for three.js) ---
-    const C_BG=0x15110e, C_RED=0xd8412b, C_AMBER=0xe8a23a, C_BONE=0xf4ede1, C_INK=0x0a0806;
+    // --- GAMF Quarterly palette (warm 1970s print catalogue; hex ints for three.js) ---
+    // dusk so the horde reads at distance, but warm brown — no neon, no black.
+    const C_DUSK=0x3a2c20,                 // deep warm brown — background + fog
+          C_OXBLOOD=0x9b3a22, C_OCHRE=0xc8923a, C_CLAY=0xa4623a,
+          C_BROWN=0x4a3b2a;                // ground + hemisphere bounce
 
     // ---- renderer ----
     const renderer=new THREE.WebGLRenderer({antialias:true});
@@ -110,35 +113,27 @@
     renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
     document.body.appendChild(renderer.domElement);
 
-    // ---- scene + warm arcade sky ----
+    // ---- scene: solid warm dusk, no gradient skydome ----
     const scene=new THREE.Scene();
-    const skyMat=new THREE.ShaderMaterial({side:THREE.BackSide,uniforms:{
-        top:{value:new THREE.Color(0x271a12)},bot:{value:new THREE.Color(0x100b08)}},
-      vertexShader:`varying vec3 v; void main(){ v=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);} `,
-      fragmentShader:`varying vec3 v; uniform vec3 top; uniform vec3 bot;
-        void main(){ float h=clamp((normalize(v).y+0.32),0.0,1.0); gl_FragColor=vec4(mix(bot,top,h),1.0);} `});
-    scene.add(new THREE.Mesh(new THREE.SphereGeometry(180,24,16),skyMat));
-    scene.background=new THREE.Color(C_BG);
-    // gentle linear fog for depth that does NOT hide gameplay: enemies spawn ~50-70u out,
-    // so fog must stay clear well past that. (The old FogExp2(0.016) hid 70-90% of every
-    // spawned enemy in the dark background — they looked like they never rendered.)
-    scene.fog=new THREE.Fog(C_BG,90,200);
+    scene.background=new THREE.Color(C_DUSK);
+    // gentle warm fog matching the background — stays clear well past the spawn
+    // ring (enemies appear 42-64u out) so it adds depth without hiding gameplay.
+    scene.fog=new THREE.Fog(C_DUSK,90,200);
 
     const camera=new THREE.PerspectiveCamera(74,1,0.1,220); camera.position.set(0,1.6,0);
     let yaw=0,pitch=0;
 
-    // ---- ground (plain solid plane, no grid lines) ----
+    // ---- ground (plain solid warm plane, no grid lines) ----
     const floor=new THREE.Mesh(new THREE.PlaneGeometry(400,400),
-      new THREE.MeshStandardMaterial({color:0x241a13,roughness:0.96}));
+      new THREE.MeshStandardMaterial({color:C_BROWN,roughness:0.96,metalness:0}));
     floor.rotation.x=-Math.PI/2; floor.receiveShadow=true; scene.add(floor);
 
-    // ---- lighting ----
-    scene.add(new THREE.HemisphereLight(0xffe7c2,0x241a12,0.85));
-    const key=new THREE.DirectionalLight(0xfff0d8,1.05); key.position.set(7,17,5);
+    // ---- lighting: one warm directional + warm hemisphere, gentle (no neon point lights) ----
+    scene.add(new THREE.HemisphereLight(0xffe7c2,C_BROWN,0.9));
+    const key=new THREE.DirectionalLight(0xffe8c4,1.1); key.position.set(7,17,5);
     key.castShadow=true; key.shadow.mapSize.set(1024,1024);
     key.shadow.camera.left=-44; key.shadow.camera.right=44; key.shadow.camera.top=44; key.shadow.camera.bottom=-44;
     key.shadow.camera.far=130; scene.add(key);
-    const rim=new THREE.PointLight(C_RED,0.7,90); rim.position.set(-12,9,-22); scene.add(rim);
 
     // ---- deterministic LCG (no Math.random / Date) ----
     let seed=20240607; const rand=()=> (seed=(seed*1103515245+12345)&0x7fffffff)/0x7fffffff;
@@ -150,14 +145,16 @@
     const armGeo=new THREE.CapsuleGeometry(0.13,0.7,3,8);
     function makeEnemy(color,brute){
       const g=new THREE.Group();
-      const bodyMat=new THREE.MeshStandardMaterial({color,emissive:new THREE.Color(color).multiplyScalar(0.35),
-        metalness:0.25,roughness:0.55});
+      // honest matte body — no emissive glow; lit purely by the scene lights.
+      const bodyMat=new THREE.MeshStandardMaterial({color,emissive:0x000000,
+        metalness:0,roughness:0.85});
       const body=new THREE.Mesh(bodyGeo,bodyMat); body.position.y=1.05; body.castShadow=true; g.add(body);
       const head=new THREE.Mesh(headGeo,bodyMat); head.position.y=1.9; head.castShadow=true; g.add(head);
-      const eyeMat=new THREE.MeshBasicMaterial({color:C_AMBER});
+      // matte dark eyes (no glow) — just enough contrast to read as a face.
+      const eyeMat=new THREE.MeshStandardMaterial({color:0x221c14,emissive:0x000000,roughness:0.7});
       const eL=new THREE.Mesh(eyeGeo,eyeMat); eL.position.set(-0.13,1.93,0.28); g.add(eL);
       const eR=new THREE.Mesh(eyeGeo,eyeMat); eR.position.set(0.13,1.93,0.28); g.add(eR);
-      const armMat=new THREE.MeshStandardMaterial({color:new THREE.Color(color).multiplyScalar(0.8),roughness:0.6});
+      const armMat=new THREE.MeshStandardMaterial({color:new THREE.Color(color).multiplyScalar(0.8),roughness:0.8,metalness:0});
       const aL=new THREE.Mesh(armGeo,armMat); aL.position.set(-0.5,1.2,0.18); aL.rotation.x=-0.9; aL.castShadow=true; g.add(aL);
       const aR=new THREE.Mesh(armGeo,armMat); aR.position.set(0.5,1.2,0.18); aR.rotation.x=-0.9; aR.castShadow=true; g.add(aR);
       if(brute) g.scale.setScalar(1.45);
@@ -169,8 +166,8 @@
     const enemies=[]; const REACH_Z=-1.8;
     function spawnEnemy(speedMul){
       const brute=rand()<0.18;                         // brutes: tankier-looking, more points, slower
-      const hot=!brute && rand()<0.26;                 // runners: fast, amber
-      const col=brute?0x9c3320:(hot?C_AMBER:C_RED);
+      const hot=!brute && rand()<0.26;                 // runners: fast, ochre
+      const col=brute?C_CLAY:(hot?C_OCHRE:C_OXBLOOD);  // warm earthy: clay brute / ochre runner / oxblood grunt
       const e=makeEnemy(col,brute);
       const ang=(rand()-0.5)*Math.PI*0.95;             // forward arc
       const dist=42+rand()*22;                          // 42-64u: in front, clear of fog (fog starts 90u)
@@ -188,7 +185,7 @@
     }
 
     // ---- tracers ----
-    const tracerMat=new THREE.LineBasicMaterial({color:C_AMBER,transparent:true,opacity:0.95});
+    const tracerMat=new THREE.LineBasicMaterial({color:C_OCHRE,transparent:true,opacity:0.9});
     const tracers=[];
     function tracer(to){
       const from=new THREE.Vector3(0,1.42,0);
@@ -275,10 +272,8 @@
       const i=enemies.indexOf(obj); if(i<0) return;
       obj.userData.hp--;
       explode(obj.position, obj.userData.col);
-      if(obj.userData.hp>0){ obj.userData.col=C_AMBER;            // damaged brute flashes amber, survives
-        const c=new THREE.Color(C_AMBER);
-        obj.userData.head.material.color.copy(c);                 // body+head share one material → recolours both
-        obj.userData.head.material.emissive.copy(c).multiplyScalar(0.35);
+      if(obj.userData.hp>0){ obj.userData.col=C_OCHRE;            // damaged brute shifts to ochre, survives
+        obj.userData.head.material.color.set(C_OCHRE);            // body+head share one matte material → recolours both
         return; }
       score+=obj.userData.pts; kills++; scoreEl.textContent=score;
       scene.remove(obj); enemies.splice(i,1); killsThisWave++;

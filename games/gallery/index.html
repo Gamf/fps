@@ -3,36 +3,36 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-  <meta name="theme-color" content="#07080c">
+  <meta name="theme-color" content="#e9dcc0">
   <title>Gallery — Gamf</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,900;1,9..144,400&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../../gamf.css">
   <style>
-    /* fps genre accent */
-    body { --gx-accent: #e0556b; }
+    /* fps genre accent (oxblood) */
+    body { --gx-accent: #9b3a22; }
     html, body { height: 100%; overflow: hidden; touch-action: none;
       -webkit-user-select: none; user-select: none; }
-    /* the body backdrop is hidden behind the canvas, keep it dark */
-    body { background: #07080c; }
+    /* the body backdrop is hidden behind the canvas, keep it warm cream */
+    body { background: #e9dcc0; }
     canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 
-    /* crosshair reticle */
+    /* crosshair reticle — flat oxblood ink, no glow */
     .cross { position: fixed; top: 50%; left: 50%; width: 30px; height: 30px;
       transform: translate(-50%, -50%); z-index: 4; pointer-events: none;
-      filter: drop-shadow(0 0 5px rgba(224,85,107,.85)); transition: transform .07s ease-out; }
+      transition: transform .07s ease-out; }
     .cross.kick { transform: translate(-50%, -50%) scale(.78); }
-    .cross::before, .cross::after { content: ""; position: absolute; background: #ffd2da; opacity: .92; border-radius: 2px; }
+    .cross::before, .cross::after { content: ""; position: absolute; background: #9b3a22; opacity: .95; border-radius: 2px; }
     .cross::before { left: 50%; top: 0; width: 2px; height: 30px; margin-left: -1px; }
     .cross::after { top: 50%; left: 0; height: 2px; width: 30px; margin-top: -1px; }
-    .cross span { position: absolute; inset: 4px; border: 2px solid rgba(224,85,107,.6); border-radius: 50%; }
+    .cross span { position: absolute; inset: 4px; border: 2px solid rgba(155,58,34,.7); border-radius: 50%; }
 
     /* combo banner (center-top) */
     .combo { position: fixed; top: calc(env(safe-area-inset-top) + 54px); left: 0; right: 0;
       text-align: center; z-index: 4; pointer-events: none;
       font-family: var(--gx-font-display); font-weight: 700; font-size: 1.45rem;
-      color: var(--gx-warn); text-shadow: 0 2px 12px rgba(0,0,0,.6);
+      color: var(--gx-accent); text-shadow: 0 1px 2px rgba(40,28,10,.35);
       opacity: 0; transform: translateY(6px) scale(.9); transition: opacity .18s, transform .18s; }
     .combo.show { opacity: 1; transform: translateY(0) scale(1); }
 
@@ -40,7 +40,7 @@
     .pops { position: fixed; inset: 0; z-index: 4; pointer-events: none; overflow: hidden; }
     .pop { position: absolute; transform: translate(-50%,-50%);
       font-family: var(--gx-font-display); font-weight: 700; font-size: 1.1rem;
-      color: #fff; text-shadow: 0 2px 8px rgba(0,0,0,.7); animation: popUp .8s ease-out forwards; }
+      color: #efe6d2; text-shadow: 0 1px 2px rgba(40,28,10,.5); animation: popUp .8s ease-out forwards; }
     @keyframes popUp { 0% { opacity: 0; transform: translate(-50%,-40%) scale(.7); }
       18% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%,-130%) scale(1.05); } }
 
@@ -57,7 +57,7 @@
     .timebar { position: fixed; left: 0; right: 0; top: env(safe-area-inset-top); height: 3px; z-index: 5;
       background: transparent; pointer-events: none; }
     .timebar i { display: block; height: 100%; width: 100%; transform-origin: left;
-      background: linear-gradient(90deg, var(--gx-accent), var(--gx-warn)); transition: transform .12s linear; }
+      background: var(--gx-accent); transition: transform .12s linear; }
     @media (prefers-reduced-motion: reduce) { .pop { animation: none; } }
   </style>
 </head>
@@ -136,14 +136,12 @@
     document.body.appendChild(renderer.domElement);
 
     // ---- Scene + atmosphere ----
+    // Solid warm "cream stock" sky — no gradient skydome, no neon.
+    const SKY = 0xe9dcc0;
     const scene = new THREE.Scene();
-    const skyMat = new THREE.ShaderMaterial({ side: THREE.BackSide, uniforms: {
-      top: { value: new THREE.Color(0x21162a) }, bot: { value: new THREE.Color(0x07080c) } },
-      vertexShader: `varying vec3 v; void main(){ v=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);} `,
-      fragmentShader: `varying vec3 v; uniform vec3 top; uniform vec3 bot;
-        void main(){ float h=clamp((normalize(v).y+0.30),0.0,1.0); gl_FragColor=vec4(mix(bot,top,h),1.0);} ` });
-    scene.add(new THREE.Mesh(new THREE.SphereGeometry(80, 24, 16), skyMat));
-    scene.fog = new THREE.Fog(0x100912, 14, 60);
+    scene.background = new THREE.Color(SKY);
+    // gentle, warm fog that matches the background so far targets fade into cream
+    scene.fog = new THREE.Fog(SKY, 22, 70);
 
     const camera = new THREE.PerspectiveCamera(72, 1, 0.1, 120);
     camera.position.set(0, 1.6, 0);
@@ -154,75 +152,68 @@
     const rand = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
     const rrange = (a, b) => a + (b - a) * rand();
 
-    // ---- Booth scene ----
-    // wooden floor
+    // ---- Booth scene (warm, matte, printed-catalogue palette) ----
+    // plain solid warm-brown ground plane (no grid)
     const floor = new THREE.Mesh(new THREE.PlaneGeometry(120, 120),
-      new THREE.MeshStandardMaterial({ color: 0x2a1d22, roughness: 0.92, metalness: 0.05 }));
+      new THREE.MeshStandardMaterial({ color: 0x4a3b2a, roughness: 0.95, metalness: 0 }));
     floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
-    // (no grid: users disliked the visible grid lines — the plain solid floor above is the ground)
 
-    // back wall of the booth
+    // back wall of the booth — warm clay, matte
     const wall = new THREE.Mesh(new THREE.PlaneGeometry(60, 26),
-      new THREE.MeshStandardMaterial({ color: 0x140d17, roughness: 1 }));
+      new THREE.MeshStandardMaterial({ color: 0x6f5a40, roughness: 1, metalness: 0 }));
     wall.position.set(0, 6, -34); wall.receiveShadow = true; scene.add(wall);
 
-    // striped awning across the top of the booth
+    // rails each lane rides on — warm brown timber
     const ROWS_Z = [-14, -20, -27];        // depth of each lane (near -> far)
     const RAILS = [];
     for (const z of ROWS_Z) {
-      // back rail bar each lane rides on
       const rail = new THREE.Mesh(new THREE.BoxGeometry(40, 0.12, 0.5),
-        new THREE.MeshStandardMaterial({ color: 0x3a2730, roughness: 0.6, metalness: 0.5 }));
+        new THREE.MeshStandardMaterial({ color: 0x4a3b2a, roughness: 0.85, metalness: 0 }));
       rail.position.set(0, 0.7, z + 0.6); rail.receiveShadow = true; scene.add(rail);
       RAILS.push(rail);
     }
-    // awning canopy
+    // striped awning canopy — oxblood / cream, matte
     const awnGeo = new THREE.BoxGeometry(2.6, 0.5, 4);
     for (let i = -7; i <= 7; i++) {
       const m = new THREE.Mesh(awnGeo, new THREE.MeshStandardMaterial({
-        color: (i & 1) ? 0xe0556b : 0xf2eef0, roughness: 0.7 }));
+        color: (i & 1) ? 0x9b3a22 : 0xefe6d2, roughness: 0.85, metalness: 0 }));
       m.position.set(i * 2.6, 9.2, -10); m.rotation.x = -0.32; m.castShadow = true; scene.add(m);
     }
 
-    // ---- Lighting ----
-    scene.add(new THREE.HemisphereLight(0xd9c2ff, 0x2a1822, 0.75));
-    const key = new THREE.DirectionalLight(0xffffff, 1.15); key.position.set(5, 16, 8);
+    // ---- Lighting (warm, gentle: one directional + soft hemisphere) ----
+    // warm sky overhead, warm ground bounce — soft fill so matte colours read true
+    scene.add(new THREE.HemisphereLight(0xf2e6c8, 0x6f5a40, 0.85));
+    scene.add(new THREE.AmbientLight(0xefe6d2, 0.25));
+    const key = new THREE.DirectionalLight(0xfff1d6, 1.0); key.position.set(6, 16, 6);
     key.castShadow = true; key.shadow.mapSize.set(1024, 1024);
     key.shadow.camera.left = -28; key.shadow.camera.right = 28;
     key.shadow.camera.top = 28; key.shadow.camera.bottom = -28; key.shadow.camera.far = 80;
     scene.add(key);
-    const fill = new THREE.PointLight(0xe0556b, 0.7, 70); fill.position.set(-10, 7, -16); scene.add(fill);
-    const fill2 = new THREE.PointLight(0x6c8cff, 0.5, 70); fill2.position.set(11, 6, -20); scene.add(fill2);
 
     // ---- Target factory ----
     // A bullseye disc (concentric rings) on a small post, faces the player.
-    const RING_COLORS = [0xf2eef0, 0xe0556b, 0xf2eef0, 0xe0556b, 0xffd23f];
+    // Warm, matte rings (cream / oxblood); bonus swaps the centre for ochre.
+    const RING_COLORS = [0xefe6d2, 0x9b3a22, 0xefe6d2, 0x9b3a22, 0xc8923a];
+    const BONUS_COLORS = [0xefe6d2, 0xc8923a, 0xefe6d2, 0xc8923a, 0x9b3a22];
     function makeTarget(radius, kind) {
       const g = new THREE.Group();
-      // rings as flat cylinders stacked slightly in z
+      const cols = kind === 'bonus' ? BONUS_COLORS : RING_COLORS;
+      // rings as flat discs stacked slightly in z — honest matte colour, no glow.
+      // Double-sided so the face reads whichever way it billboards.
       for (let r = 0; r < 5; r++) {
         const rr = radius * (1 - r * 0.18);
-        // double-sided + a healthy emissive so the bullseye is always visible,
-        // regardless of which way it spins or how the lights happen to fall.
         const disc = new THREE.Mesh(new THREE.CircleGeometry(rr, 28),
-          new THREE.MeshStandardMaterial({ color: RING_COLORS[r], roughness: 0.5, metalness: 0.1,
-            side: THREE.DoubleSide,
-            emissive: new THREE.Color(RING_COLORS[r]).multiplyScalar(0.35) }));
+          new THREE.MeshStandardMaterial({ color: cols[r], roughness: 0.85, metalness: 0,
+            side: THREE.DoubleSide }));
         disc.position.z = 0.012 * r; g.add(disc);
       }
-      // rim
+      // rim — warm brown timber
       const rim = new THREE.Mesh(new THREE.TorusGeometry(radius, radius * 0.06, 8, 28),
-        new THREE.MeshStandardMaterial({ color: 0x2a1d22, metalness: 0.6, roughness: 0.4 }));
+        new THREE.MeshStandardMaterial({ color: 0x4a3b2a, metalness: 0, roughness: 0.85 }));
       g.add(rim);
-      // glowing back-plate for bonus targets
-      if (kind === 'bonus') {
-        const halo = new THREE.Mesh(new THREE.CircleGeometry(radius * 1.3, 28),
-          new THREE.MeshBasicMaterial({ color: 0xffd23f, transparent: true, opacity: 0.22 }));
-        halo.position.z = -0.02; g.add(halo);
-      }
-      // post
+      // post — warm brown
       const post = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 2.4, 8),
-        new THREE.MeshStandardMaterial({ color: 0x3a2730, metalness: 0.5, roughness: 0.5 }));
+        new THREE.MeshStandardMaterial({ color: 0x4a3b2a, metalness: 0, roughness: 0.85 }));
       post.position.y = -radius - 1.2; post.castShadow = true; g.add(post);
       g.children.forEach(c => { c.castShadow = true; });
       return g;
@@ -336,12 +327,12 @@
       const gained = d.pts * combo;
       score += gained;
       scoreEl.textContent = score;
-      burst(obj.position.clone(), d.bonus ? 0xffd23f : 0xe0556b);
+      burst(obj.position.clone(), d.bonus ? 0xc8923a : 0x9b3a22);
       // project hit point to screen for the floating score pop
       const sp = obj.position.clone().project(camera);
       const sx = (sp.x * 0.5 + 0.5) * innerWidth;
       const sy = (-sp.y * 0.5 + 0.5) * innerHeight;
-      spawnPop('+' + gained, d.bonus ? '#ffd23f' : '#ffd2da', sx, sy);
+      spawnPop('+' + gained, d.bonus ? '#c8923a' : '#efe6d2', sx, sy);
       scene.remove(obj); targets.splice(i, 1);
       // keep a healthy field of targets
       if (targets.length < 4 + Math.min(round, 4)) spawnTarget();

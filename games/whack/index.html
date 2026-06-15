@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-  <meta name="theme-color" content="#15110e">
+  <meta name="theme-color" content="#e9dcc0">
   <title>Whack — Gamf</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -12,7 +12,7 @@
   <style>
     body { --gx-accent: #e0556b; }
     html,body{height:100%;overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none}
-    body{background:#15110e}
+    body{background:#e9dcc0}
     canvas{display:block;width:100%;height:100%;touch-action:none}
 
     /* center marquee: time left + combo, arcade style */
@@ -113,22 +113,16 @@
     const renderer=new THREE.WebGLRenderer({antialias:true});
     renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));
     renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
-    renderer.setClearColor(0x15110e,1);
+    // Warm cream daylight backdrop (GAMF Quarterly — print catalogue, no neon).
+    const SKY=0xe9dcc0;
+    renderer.setClearColor(SKY,1);
     document.body.appendChild(renderer.domElement);
 
     const scene=new THREE.Scene();
-    // Solid background so the playfield is never on a blank/transparent canvas.
-    scene.background=new THREE.Color(0x15110e);
-    // Gentle fog for depth — kept thin so no hole/mole is ever hidden by it.
-    scene.fog=new THREE.FogExp2(0x15110e,0.018);
-
-    // Gradient backdrop sphere (warm arcade tones).
-    const skyMat=new THREE.ShaderMaterial({side:THREE.BackSide,uniforms:{
-      top:{value:new THREE.Color(0x2a1c12)},bot:{value:new THREE.Color(0x100c09)}},
-      vertexShader:`varying vec3 v; void main(){ v=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);} `,
-      fragmentShader:`varying vec3 v; uniform vec3 top; uniform vec3 bot;
-        void main(){ float h=clamp((normalize(v).y+0.30),0.0,1.0); gl_FragColor=vec4(mix(bot,top,h),1.0);} `});
-    scene.add(new THREE.Mesh(new THREE.SphereGeometry(90,24,16),skyMat));
+    // Solid warm background so the playfield reads as a flat printed page.
+    scene.background=new THREE.Color(SKY);
+    // Subtle warm fog matched to the background — depth only, never hides a hole.
+    scene.fog=new THREE.Fog(SKY,28,80);
 
     // ---- Camera looking down onto the playfield ----
     const camera=new THREE.PerspectiveCamera(60,1,0.1,200);
@@ -137,24 +131,23 @@
     const LOOK=new THREE.Vector3(0,0,-0.6);
     let yaw=0,pitch=0; // small aim offset applied to camera target
 
-    // ---- Lighting ----
-    scene.add(new THREE.HemisphereLight(0xffd9a0,0x241710,0.75));
-    const key=new THREE.DirectionalLight(0xfff0d8,1.15); key.position.set(6,16,8);
+    // ---- Lighting: gentle warm daylight — one directional + soft sky/ground fill.
+    scene.add(new THREE.HemisphereLight(0xefe6d2,0x6f6a3b,0.85));
+    scene.add(new THREE.AmbientLight(0xe9dcc0,0.3));
+    const key=new THREE.DirectionalLight(0xf3e6c8,1.0); key.position.set(6,16,8);
     key.castShadow=true; key.shadow.mapSize.set(1024,1024);
     key.shadow.camera.left=-14; key.shadow.camera.right=14; key.shadow.camera.top=14; key.shadow.camera.bottom=-14;
     key.shadow.camera.far=60; scene.add(key);
-    const rim=new THREE.PointLight(0xd8412b,0.7,40); rim.position.set(-8,6,-6); scene.add(rim);
-    const amb=new THREE.PointLight(0xe8a23a,0.5,40); amb.position.set(8,5,4); scene.add(amb);
 
     // ---- Playfield: warm board with a grid of holes ----
     const GRID=3, GAP=3.0; // 3x3 holes
     const board=new THREE.Mesh(
       new THREE.BoxGeometry(GAP*GRID+2.2,0.7,GAP*GRID+2.2),
-      new THREE.MeshStandardMaterial({color:0x3a2a1c,roughness:0.92,metalness:0.05}));
+      new THREE.MeshStandardMaterial({color:0x4a3b2a,roughness:1,metalness:0}));
     board.position.y=-0.35; board.receiveShadow=true; scene.add(board);
     const trim=new THREE.Mesh(
       new THREE.BoxGeometry(GAP*GRID+2.8,0.5,GAP*GRID+2.8),
-      new THREE.MeshStandardMaterial({color:0xd8412b,roughness:0.7,emissive:0x2a0a06}));
+      new THREE.MeshStandardMaterial({color:0x9b3a22,roughness:0.95}));
     trim.position.y=-0.6; trim.receiveShadow=true; scene.add(trim);
 
     // ---- Shared geometries ----
@@ -165,17 +158,17 @@
     const pupilGeo=new THREE.SphereGeometry(0.06,8,6);
     const noseGeo=new THREE.SphereGeometry(0.16,10,8);
 
-    const holeMat=new THREE.MeshStandardMaterial({color:0x0f0b08,roughness:1});
-    const rimMat=new THREE.MeshStandardMaterial({color:0x241712,roughness:0.9});
-    const eyeMat=new THREE.MeshBasicMaterial({color:0xf4ede1});
-    const pupilMat=new THREE.MeshBasicMaterial({color:0x1b0f0c});
+    const holeMat=new THREE.MeshStandardMaterial({color:0x2a2018,roughness:1});
+    const rimMat=new THREE.MeshStandardMaterial({color:0x3a2c20,roughness:1});
+    const eyeMat=new THREE.MeshStandardMaterial({color:0xefe6d2,roughness:0.8});
+    const pupilMat=new THREE.MeshStandardMaterial({color:0x2a2018,roughness:0.7});
 
-    // mole materials by type
-    const matNormal=new THREE.MeshStandardMaterial({color:0xe8a23a,roughness:0.55,emissive:0x3a2406});
-    const matGold=new THREE.MeshStandardMaterial({color:0xffd76a,roughness:0.35,metalness:0.4,emissive:0x4a3008});
-    const matBomb=new THREE.MeshStandardMaterial({color:0xd8412b,roughness:0.5,emissive:0x3a0a05});
-    const noseMatN=new THREE.MeshStandardMaterial({color:0xd8412b,roughness:0.6});
-    const noseMatB=new THREE.MeshStandardMaterial({color:0x1b0f0c,roughness:0.4});
+    // mole materials by type — honest matte earthy tones, no glow/emissive.
+    const matNormal=new THREE.MeshStandardMaterial({color:0xa4623a,roughness:0.9}); // clay
+    const matGold=new THREE.MeshStandardMaterial({color:0xc8923a,roughness:0.7,metalness:0.15}); // ochre
+    const matBomb=new THREE.MeshStandardMaterial({color:0x6f6a3b,roughness:0.95}); // olive (the hazard)
+    const noseMatN=new THREE.MeshStandardMaterial({color:0x9b3a22,roughness:0.9}); // oxblood nose
+    const noseMatB=new THREE.MeshStandardMaterial({color:0x2a2018,roughness:0.8});
 
     // Build a mole figure (clickable). type: 'normal'|'gold'|'bomb'
     function makeMole(type){
@@ -195,14 +188,14 @@
       // nose
       const nose=new THREE.Mesh(noseGeo,type==='bomb'?noseMatB:noseMatN);
       nose.position.set(0,0.04,0.78); g.add(nose);
-      // bomb gets a fuse
+      // bomb gets a fuse (the "do-not-whack" tell) — matte, no glowing spark.
       if(type==='bomb'){
         const fuse=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.04,0.4,6),
-          new THREE.MeshStandardMaterial({color:0x80715c}));
+          new THREE.MeshStandardMaterial({color:0x4a3b2a,roughness:0.95}));
         fuse.position.set(0,1.0,0); fuse.rotation.z=0.3; g.add(fuse);
-        const spark=new THREE.Mesh(new THREE.SphereGeometry(0.10,8,6),
-          new THREE.MeshBasicMaterial({color:0xffd76a})); spark.position.set(0.12,1.18,0); g.add(spark);
-        g.userData.spark=spark;
+        const tip=new THREE.Mesh(new THREE.SphereGeometry(0.10,8,6),
+          new THREE.MeshStandardMaterial({color:0x9b3a22,roughness:0.9}));
+        tip.position.set(0.12,1.18,0); g.add(tip);
       }
       g.userData.body=body; g.userData.type=type;
       return g;
@@ -223,7 +216,7 @@
 
     // A reticle ring on the board to show the aimed hole.
     const reticle=new THREE.Mesh(new THREE.TorusGeometry(1.18,0.07,8,28),
-      new THREE.MeshBasicMaterial({color:0xf4ede1,transparent:true,opacity:0.9}));
+      new THREE.MeshBasicMaterial({color:0xefe6d2,transparent:true,opacity:0.9}));
     reticle.rotation.x=Math.PI/2; reticle.position.y=0.08; scene.add(reticle);
     let aimIndex=4; // center hole
 
@@ -332,7 +325,7 @@
           // bomb: break combo, small penalty, no points
           combo=0; refreshCombo();
           score=Math.max(0,score-5); scoreEl.textContent=score;
-          splash(new THREE.Vector3(h.x,0,h.z),0xd8412b);
+          splash(new THREE.Vector3(h.x,0,h.z),0x9b3a22);
           popup(wp,'-5','miss');
           // knock the mole down fast
           h.state='whacked'; h.timer=0;
@@ -343,7 +336,7 @@
           const mult=comboMult();
           const gained=base*mult;
           score+=gained; scoreEl.textContent=score;
-          splash(new THREE.Vector3(h.x,0,h.z),h.type==='gold'?0xffd76a:0xe8a23a);
+          splash(new THREE.Vector3(h.x,0,h.z),h.type==='gold'?0xc8923a:0xa4623a);
           popup(wp,'+'+gained,'');
           refreshCombo();
           h.state='whacked'; h.timer=0;
@@ -455,8 +448,6 @@
               if(h.mole){
                 h.mole.position.y=yUp;
                 h.mole.rotation.y=Math.sin(t*4+h.x)*0.18;
-                const sp=h.mole.userData.spark;
-                if(sp) sp.material.color.setHex(((ts*0.02)|0)%2?0xffd76a:0xd8412b);
               }
               if(t>=ttl){
                 // mole escaped → break combo (only normals/gold matter)
@@ -484,7 +475,7 @@
       const rs=1+reticlePulse*0.25;
       reticle.scale.set(rs,rs,1);
       reticle.material.opacity=running&&!paused?0.9:0.4;
-      reticle.material.color.setHex(ah.state==='up'?0xe8a23a:0xf4ede1);
+      reticle.material.color.setHex(ah.state==='up'?0xc8923a:0xefe6d2);
 
       // Camera: tiny parallax so the board feels 3D; aim has no free-look here.
       camera.position.copy(CAM_BASE);
