@@ -304,12 +304,15 @@
     helpEl.addEventListener('click',e=>{ if(e.target===helpEl) hideHelp(); });
 
     // ---- On-screen action buttons (drag still handles look/aim) ----
-    // Every discrete action is a button — no tap-anywhere (it fights drag-aim).
+    // 3D aim game: drag aims the sights; the big thumb button under the right
+    // thumb is FIRE (the only thing you do constantly). No tap-anywhere — it
+    // would fight drag-aim. Pause is one small secondary; Restart stays on the
+    // keyboard (R) and the game-over "Play again" button so a novice can't wipe
+    // their run while reaching for Fire.
     window.gamfControls({
       actions:[
-        { label:'Restart', press:reset },
-        { label:'Pause', press:togglePause },
         { label:'Fire', press:fire },
+        { label:'Pause', press:togglePause },
       ]
     });
 

@@ -410,12 +410,14 @@
     document.getElementById('gxHelpClose').addEventListener('click',hideHelp);
     helpEl.addEventListener('click',e=>{ if(e.target===helpEl) hideHelp(); });
 
-    // ---- On-screen action buttons (drag still aims; all discrete actions are buttons) ----
+    // ---- On-screen controls ----
+    // 3D aim game: drag the screen to lead the target, one big Fire button does
+    // the work. Pause (P) and Restart (R) live on the keyboard and the game-over
+    // screen, so they're kept OUT of the thumb cluster — a novice reaching for
+    // Fire should never trip Pause/Reset by accident.
     window.gamfControls({
       actions:[
-        { label:'Fire',  press:fire },
-        { label:'Pause', press:togglePause },
-        { label:'Reset', press:reset },
+        { label:'Fire', press:fire },
       ],
     });
 

@@ -430,12 +430,14 @@
     helpEl.addEventListener('click',e=>{ if(e.target===helpEl) hideHelp(); });
 
     // ---- On-screen action buttons (drag still handles look/aim) ----
-    // Every discrete action is a button wired to the SAME function the keyboard uses.
+    // 3D aim game: drag anywhere to aim the crosshair, one BIG Fire button in the
+    // right thumb zone is the only gameplay action a novice needs. Pause (P) and
+    // Restart (R) stay on the keyboard + the game-over screen — they are kept OUT
+    // of the thumb cluster so a novice reaching for Fire can't accidentally pause
+    // or wipe their game.
     window.gamfControls({
       actions:[
-        { label:'Fire',  press:fire },          // Space / Enter
-        { label:'Pause', press:togglePause },   // P
-        { label:'Restart', press:reset },       // R
+        { label:'Fire', press:fire },           // Space / Enter
       ]
     });
 

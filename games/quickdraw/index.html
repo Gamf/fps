@@ -330,9 +330,12 @@
     const ray=new THREE.Raycaster();
     onDrag(renderer.domElement,{move:({dx,dy})=>{ if(paused) return;
       yaw-=dx*0.0035; pitch-=dy*0.0035; pitch=Math.max(-0.5,Math.min(0.5,pitch)); }});
-    // Drag handles aim; the discrete fire action lives on its own on-screen button
-    // (tap-anywhere-to-fire is removed because it fought the drag-aim gesture).
-    window.gamfControls({ actions:[ { label:'Fire', press:()=>shoot() } ] });
+    // 3D aim game: drag aims/looks, the one big primary button does the only
+    // gameplay action (Fire — also starts the duel from idle). No secondaries,
+    // no Pause/Restart in the thumb cluster (those are on the keyboard P/R and
+    // the game-over screen). Tap-anywhere-to-fire is intentionally absent so it
+    // never fights the drag-aim gesture — the thumb just rests on FIRE.
+    window.gamfControls({ actions:[ { label:'FIRE', press:()=>shoot() } ] });
 
     function togglePause(){ if(!running||helpOpen()) return; paused=!paused; els.pausetag.classList.toggle('show',paused); }
 

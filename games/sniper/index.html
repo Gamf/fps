@@ -461,18 +461,20 @@
     addEventListener('resize',resize); resize();
 
     /* ---------- on-screen action buttons (drag stays for look/aim) ----------
-       Every discrete action is a button — never tap-anywhere (it fights drag-aim).
-       Each wires to the SAME function the keyboard uses:
-         Fire  -> fire()             (Space / Enter)
-         Zoom  -> sets `zooming`     (hold; mirrors drag-press & Up/W scope zoom)
-         Pause -> togglePause()      (P)
-         Reset -> reset()            (R) */
+       3D aim game: drag anywhere aims/looks; the thumb cluster holds GAMEPLAY
+       actions only. Big primary = Fire (the one button you mash). One secondary =
+       Zoom, which you HOLD to scope in (press/release toggles the `zooming` flag,
+       so it stays scoped the whole time your thumb is down — exactly like the
+       keyboard's hold-Up/W). Pause/Restart are intentionally NOT here: a novice
+       reaching for Fire must never trip them. They live on the keyboard (P / R)
+       and on the game-over screen's "Shoot again" button. Each button wires to the
+       SAME function the keyboard uses:
+         Fire  -> fire()           (Space / Enter)
+         Zoom  -> sets `zooming`   (hold; mirrors drag-press & Up/W scope zoom) */
     window.gamfControls({
       actions:[
-        { label:'Zoom', press:()=>{ if(!paused) zooming=true; }, release:()=>{ zooming=false; } },
-        { label:'Reset', press:()=>reset() },
-        { label:'Pause', press:()=>togglePause() },
         { label:'Fire', press:()=>fire() },
+        { label:'Zoom', press:()=>{ if(!paused) zooming=true; }, release:()=>{ zooming=false; } },
       ]
     });
 

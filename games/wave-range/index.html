@@ -159,13 +159,15 @@
     function togglePause(){ if(!running) return; paused=!paused;
       document.getElementById('pausetag').classList.toggle('show',paused); }
 
-    // On-screen action buttons. Drag still handles aim; discrete actions (shoot,
-    // pause, restart) are dedicated buttons so they never fight drag-aim.
+    // 3D aim game: drag (or arrows) handles aim, so there's no D-pad. The single
+    // most-used action is Fire, so it's the big round primary button bottom-right,
+    // landing right under the thumb. Pause is the lone small secondary (raised out
+    // of the way) so a novice can't fat-finger it while reaching for Fire. Restart
+    // stays off the thumb cluster — it's on the R key and the game-over screen.
     window.gamfControls({
       actions:[
         { label:'Fire', press:shoot },
         { label:'⏸', press:togglePause },
-        { label:'↻', press:reset },
       ],
     });
 

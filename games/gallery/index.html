@@ -497,12 +497,14 @@
     helpEl.addEventListener('click', (e) => { if (e.target === helpEl) closeHelp(); });
 
     // ---- On-screen action buttons (drag still handles aim) ----
-    // Discrete actions only: fire / pause / restart — same fns the keyboard uses.
+    // 3D aim game: drag aims, one big primary button shoots. Fire is the only
+    // gameplay action, so it is the single large thumb-zone button (bottom-right).
+    // Pause/Restart stay OFF the thumb cluster — they live on the keyboard
+    // (P / R) and the game-over screen, so a novice can't hit them while
+    // reaching for Fire.
     window.gamfControls({
       actions: [
-        { label: 'Restart', press: () => { closeHelp(); reset(); } },
-        { label: 'Pause',   press: togglePause },
-        { label: 'Fire',    press: fire },
+        { label: 'Fire', press: fire },
       ],
     });
 
