@@ -45,10 +45,10 @@
         #0b0805 calc(min(44vw,44vh)),
         #0b0805 100%)}
     .scope__ring{position:absolute;top:50%;left:50%;width:min(88vw,88vh);height:min(88vw,88vh);
-      margin:calc(min(-44vw,-44vh)) 0 0 calc(min(-44vw,-44vh));border-radius:50%;
+      transform:translate(-50%,-50%);border-radius:50%;
       border:3px solid #2a2018;box-shadow:0 0 0 2px #000 inset}
     .scope__cross{position:absolute;top:50%;left:50%;width:min(80vw,80vh);height:min(80vw,80vh);
-      margin:calc(min(-40vw,-40vh)) 0 0 calc(min(-40vw,-40vh));pointer-events:none}
+      transform:translate(-50%,-50%);pointer-events:none}
     /* mil-dot crosshair lines */
     .scope__cross::before,.scope__cross::after{content:"";position:absolute;background:#1a120c;opacity:.92}
     .scope__cross::before{left:50%;top:0;width:1.5px;height:100%;margin-left:-.75px}
@@ -359,7 +359,7 @@
     function swayOffset(){
       // two out-of-phase sines = a slow lissajous wobble
       const steady=zoom;                                // more zoom => steadier hold
-      const amp=(1-steady*0.82)*0.013;                  // radians
+      const amp=(1-steady*0.92)*0.008;                  // radians — calmer, near-still when scoped
       const sx=Math.sin(swayT*1.3)*amp + Math.sin(swayT*0.55)*amp*0.6;
       const sy=Math.sin(swayT*0.9+1.7)*amp*0.8 + Math.sin(swayT*2.1)*amp*0.3;
       return {sx,sy};
