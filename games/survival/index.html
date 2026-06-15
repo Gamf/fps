@@ -103,10 +103,16 @@
     const SLUG='survival', BEST_KEY='gamf-fps-'+SLUG+'-best';
 
     // --- GAMF Quarterly palette (warm 1970s print catalogue; hex ints for three.js) ---
-    // dusk so the horde reads at distance, but warm brown — no neon, no black.
-    const C_DUSK=0x3a2c20,                 // deep warm brown — background + fog
-          C_OXBLOOD=0x9b3a22, C_OCHRE=0xc8923a, C_CLAY=0xa4623a,
-          C_BROWN=0x4a3b2a;                // ground + hemisphere bounce
+    // Doom-style hell arena, done MATTE & calm: a brooding maroon-brown sky over
+    // a dull blood-red ground, advancing horned demons. Recognisable as the 1993
+    // FPS-horde classic at a glance, but with our own simple shapes — no neon,
+    // no glow/bloom, no copied sprite art, just the iconic scene + colour identity.
+    const C_DUSK=0x2e2018,                 // deep maroon-brown — sky + fog
+          C_GROUND=0x57271f,               // dull dried-blood red ground (Doom hell floor)
+          C_OXBLOOD=0x9b3a22, C_OCHRE=0xc8923a,
+          C_PINK=0xc06a5a,                 // pinky-demon flesh (brute)
+          C_HORN=0xe7d8b6,                 // bone horns / brow
+          C_BROWN=0x3c2c22;                // hemisphere bounce
 
     // ---- renderer ----
     const renderer=new THREE.WebGLRenderer({antialias:true});
@@ -124,14 +130,14 @@
     const camera=new THREE.PerspectiveCamera(74,1,0.1,220); camera.position.set(0,1.6,0);
     let yaw=0,pitch=0;
 
-    // ---- ground (plain solid warm plane, no grid lines) ----
+    // ---- ground (Doom hell floor: dull dried-blood red, matte, no grid lines) ----
     const floor=new THREE.Mesh(new THREE.PlaneGeometry(400,400),
-      new THREE.MeshStandardMaterial({color:C_BROWN,roughness:0.96,metalness:0}));
+      new THREE.MeshStandardMaterial({color:C_GROUND,roughness:0.97,metalness:0}));
     floor.rotation.x=-Math.PI/2; floor.receiveShadow=true; scene.add(floor);
 
-    // ---- lighting: one warm directional + warm hemisphere, gentle (no neon point lights) ----
-    scene.add(new THREE.HemisphereLight(0xffe7c2,C_BROWN,0.9));
-    const key=new THREE.DirectionalLight(0xffe8c4,1.1); key.position.set(7,17,5);
+    // ---- lighting: warm hellish key + dim maroon hemisphere, gentle (no neon point lights) ----
+    scene.add(new THREE.HemisphereLight(0xffcf9a,C_BROWN,0.85));
+    const key=new THREE.DirectionalLight(0xffba78,1.15); key.position.set(7,17,5);
     key.castShadow=true; key.shadow.mapSize.set(1024,1024);
     key.shadow.camera.left=-44; key.shadow.camera.right=44; key.shadow.camera.top=44; key.shadow.camera.bottom=-44;
     key.shadow.camera.far=130; scene.add(key);
@@ -139,22 +145,31 @@
     // ---- deterministic LCG (no Math.random / Date) ----
     let seed=20240607; const rand=()=> (seed=(seed*1103515245+12345)&0x7fffffff)/0x7fffffff;
 
-    // ---- shared enemy geometry ----
+    // ---- shared enemy geometry (horned Doom-style demon: hulking biped) ----
     const bodyGeo=new THREE.CapsuleGeometry(0.42,0.9,4,12);
     const headGeo=new THREE.IcosahedronGeometry(0.34,0);
-    const eyeGeo=new THREE.SphereGeometry(0.10,8,6);
+    const browGeo=new THREE.BoxGeometry(0.46,0.12,0.18);   // heavy angry brow ridge
+    const eyeGeo=new THREE.SphereGeometry(0.09,8,6);
+    const hornGeo=new THREE.ConeGeometry(0.10,0.46,7);     // curved bone horn (the demon-silhouette cue)
     const armGeo=new THREE.CapsuleGeometry(0.13,0.7,3,8);
+    const hornMat=new THREE.MeshStandardMaterial({color:C_HORN,roughness:0.7,metalness:0});
     function makeEnemy(color,brute){
       const g=new THREE.Group();
-      // honest matte body — no emissive glow; lit purely by the scene lights.
+      // honest matte flesh — no emissive glow; lit purely by the scene lights.
       const bodyMat=new THREE.MeshStandardMaterial({color,emissive:0x000000,
         metalness:0,roughness:0.85});
       const body=new THREE.Mesh(bodyGeo,bodyMat); body.position.y=1.05; body.castShadow=true; g.add(body);
       const head=new THREE.Mesh(headGeo,bodyMat); head.position.y=1.9; head.castShadow=true; g.add(head);
-      // matte dark eyes (no glow) — just enough contrast to read as a face.
-      const eyeMat=new THREE.MeshStandardMaterial({color:0x221c14,emissive:0x000000,roughness:0.7});
-      const eL=new THREE.Mesh(eyeGeo,eyeMat); eL.position.set(-0.13,1.93,0.28); g.add(eL);
-      const eR=new THREE.Mesh(eyeGeo,eyeMat); eR.position.set(0.13,1.93,0.28); g.add(eR);
+      // bone horns sweeping up-and-out from the temples — reads instantly as a demon.
+      const hL=new THREE.Mesh(hornGeo,hornMat); hL.position.set(-0.22,2.18,0.02); hL.rotation.set(0.2,0,0.5); hL.castShadow=true; g.add(hL);
+      const hR=new THREE.Mesh(hornGeo,hornMat); hR.position.set(0.22,2.18,0.02); hR.rotation.set(0.2,0,-0.5); hR.castShadow=true; g.add(hR);
+      // heavy brow ridge over the eyes — the scowling demon face.
+      const browMat=new THREE.MeshStandardMaterial({color:new THREE.Color(color).multiplyScalar(0.7),roughness:0.85});
+      const brow=new THREE.Mesh(browGeo,browMat); brow.position.set(0,1.99,0.26); g.add(brow);
+      // angry eyes: dull ember-red, matte (no glow / bloom).
+      const eyeMat=new THREE.MeshStandardMaterial({color:0x7a1d12,emissive:0x000000,roughness:0.6});
+      const eL=new THREE.Mesh(eyeGeo,eyeMat); eL.position.set(-0.13,1.90,0.29); g.add(eL);
+      const eR=new THREE.Mesh(eyeGeo,eyeMat); eR.position.set(0.13,1.90,0.29); g.add(eR);
       const armMat=new THREE.MeshStandardMaterial({color:new THREE.Color(color).multiplyScalar(0.8),roughness:0.8,metalness:0});
       const aL=new THREE.Mesh(armGeo,armMat); aL.position.set(-0.5,1.2,0.18); aL.rotation.x=-0.9; aL.castShadow=true; g.add(aL);
       const aR=new THREE.Mesh(armGeo,armMat); aR.position.set(0.5,1.2,0.18); aR.rotation.x=-0.9; aR.castShadow=true; g.add(aR);
@@ -166,9 +181,9 @@
 
     const enemies=[]; const REACH_Z=-1.8;
     function spawnEnemy(speedMul){
-      const brute=rand()<0.18;                         // brutes: tankier-looking, more points, slower
-      const hot=!brute && rand()<0.26;                 // runners: fast, ochre
-      const col=brute?C_CLAY:(hot?C_OCHRE:C_OXBLOOD);  // warm earthy: clay brute / ochre runner / oxblood grunt
+      const brute=rand()<0.18;                         // pinky demon: tankier-looking, more points, slower
+      const hot=!brute && rand()<0.26;                 // runner imp: fast, ochre-lit
+      const col=brute?C_PINK:(hot?C_OCHRE:C_OXBLOOD);  // Doom demons: pink pinky brute / ochre runner imp / oxblood imp grunt
       const e=makeEnemy(col,brute);
       const ang=(rand()-0.5)*Math.PI*0.95;             // forward arc
       const dist=42+rand()*22;                          // 42-64u: in front, clear of fog (fog starts 90u)

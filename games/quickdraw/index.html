@@ -102,25 +102,36 @@
     document.body.appendChild(renderer.domElement);
 
     const scene=new THREE.Scene();
-    // Solid warm dusk-brown sky — no gradient skydome.
-    scene.background=new THREE.Color(0x3a2c20);
-    // Subtle warm fog matching the background; starts well beyond the bandit row
-    // (~15u) and the mesas (~48u) so gameplay is never hidden, only the far edge.
-    scene.fog=new THREE.Fog(0x3a2c20,70,160);
+    // Solid warm desert sky — flat dusty amber, no gradient skydome/glow.
+    scene.background=new THREE.Color(0xd9a45e);
+    // Subtle warm fog matching the sky; starts well beyond the bandit row
+    // (~9u) and the mesas (~48u) so gameplay is never hidden, only the far edge.
+    scene.fog=new THREE.Fog(0xd9a45e,70,160);
+
+    // Flat low desert sun disc + a calm sky band behind the mesas. A single
+    // matte circle on a wide upright plane — reads instantly as a western
+    // afternoon. No bloom, no gradient: just two solid warm shapes.
+    const sky=new THREE.Mesh(new THREE.PlaneGeometry(360,120),
+      new THREE.MeshBasicMaterial({color:0xe8b86a,fog:false}));
+    sky.position.set(0,30,-80); scene.add(sky);
+    const sun=new THREE.Mesh(new THREE.CircleGeometry(9,40),
+      new THREE.MeshBasicMaterial({color:0xf0dca0,fog:false}));
+    sun.position.set(14,34,-78); scene.add(sun);
 
     const camera=new THREE.PerspectiveCamera(70,1,0.1,300); camera.position.set(0,1.6,6);
     let yaw=0,pitch=-0.02;
 
     // warm desert floor — plain matte clay, no grid
     const floor=new THREE.Mesh(new THREE.PlaneGeometry(220,220),
-      new THREE.MeshStandardMaterial({color:0xa4623a,roughness:1,metalness:0}));
+      new THREE.MeshStandardMaterial({color:0xc07a44,roughness:1,metalness:0}));
     floor.rotation.x=-Math.PI/2; floor.receiveShadow=true; scene.add(floor);
     // (no GridHelper — plain solid desert ground, no visible grid lines)
 
-    // distant mesa silhouettes — warm brown, matte
-    const mesaMat=new THREE.MeshStandardMaterial({color:0x4a3b2a,roughness:1});
+    // distant flat-topped mesa/butte silhouettes — the signature western horizon.
+    // Warm oxblood-brown, matte; sat against the amber sky band.
+    const mesaMat=new THREE.MeshStandardMaterial({color:0x8a4a2c,roughness:1});
     for(let i=0;i<7;i++){
-      const w=range(6,14), h=range(4,11);
+      const w=range(7,16), h=range(5,12);
       const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,3),mesaMat);
       const ang=range(-1.1,1.1);
       m.position.set(Math.sin(ang)*42,h/2-0.5,-30-Math.cos(ang)*12+range(-6,6));
@@ -134,32 +145,72 @@
     dl.shadow.camera.left=-20; dl.shadow.camera.right=20; dl.shadow.camera.top=20; dl.shadow.camera.bottom=-20;
     scene.add(dl);
 
-    /* ---------- bandit cut-outs in a row ---------- */
-    // Each bandit is a flat board (fence-post target). Lit ones are "hostile".
+    /* ---------- cowboy-gunslinger cut-outs in a row ---------- */
+    // Each "bandit" is a stand-up plywood gunslinger on a fence-post — head
+    // under a wide cowboy hat, square shoulders/arms, a torso plank, a gun-belt
+    // and a holstered six-shooter. Built from plain matte blocks (our own
+    // shapes), it reads instantly as a wild-west duel target. Lit = hostile.
     const NUM=5;
     const bandits=[];
-    const boardGeo=new THREE.BoxGeometry(1.5,2.5,0.18);
-    const hatGeo=new THREE.CylinderGeometry(0.45,0.5,0.32,12);
-    const brimGeo=new THREE.CylinderGeometry(0.85,0.85,0.06,16);
+    const torsoGeo=new THREE.BoxGeometry(1.4,1.5,0.18);   // chest plank
+    const headGeo=new THREE.BoxGeometry(0.62,0.62,0.18);  // head
+    const shoulderGeo=new THREE.BoxGeometry(1.9,0.42,0.18);// shoulder bar
+    const armGeo=new THREE.BoxGeometry(0.34,1.1,0.18);    // hanging arm
+    const legGeo=new THREE.BoxGeometry(0.42,1.0,0.18);    // leg
+    const beltGeo=new THREE.BoxGeometry(1.5,0.24,0.2);    // gun-belt
+    const holsterGeo=new THREE.BoxGeometry(0.3,0.5,0.22); // holster
+    const gunGeo=new THREE.BoxGeometry(0.5,0.16,0.16);    // pistol barrel
+    const crownGeo=new THREE.BoxGeometry(0.78,0.4,0.2);   // hat crown
+    const brimGeo=new THREE.CylinderGeometry(0.92,0.92,0.07,18); // hat brim
+    const kerchiefGeo=new THREE.BoxGeometry(0.66,0.32,0.19);     // neckerchief
     const postGeo=new THREE.BoxGeometry(0.18,1.4,0.18);
-    const badgeGeo=new THREE.CircleGeometry(0.34,5);
+    const badgeGeo=new THREE.CircleGeometry(0.3,5);       // sheriff-style star marker
+
+    // shared palettes (matte, flat)
+    const HAT=0x2c2218, SKIN=0xc69a6a, LEATHER=0x6b4423, STEEL=0x2b2b2e;
 
     function makeBandit(x){
       const g=new THREE.Group();
-      // post
+      // post the cut-out stands on
       const post=new THREE.Mesh(postGeo,new THREE.MeshStandardMaterial({color:0x4a3b2a,roughness:1}));
       post.position.y=0.7; post.castShadow=true; g.add(post);
-      // board (the silhouette body) — warm olive plank, matte, reads against clay desert
+
+      // torso plank — THIS is the "body" that recolours to oxblood when hostile
       const bodyMat=new THREE.MeshStandardMaterial({color:0x6f6a3b,roughness:0.9,metalness:0});
-      const body=new THREE.Mesh(boardGeo,bodyMat);
-      body.position.y=2.45; body.castShadow=true; g.add(body);
-      // hat — warm dark brown, matte
-      const hatMat=new THREE.MeshStandardMaterial({color:0x2c2218,roughness:0.95});
-      const brim=new THREE.Mesh(brimGeo,hatMat); brim.position.y=3.78; g.add(brim);
-      const crown=new THREE.Mesh(hatGeo,hatMat); crown.position.y=3.95; g.add(crown);
-      // badge / bullseye on chest (changes to ochre when hostile — color, not glow)
+      const body=new THREE.Mesh(torsoGeo,bodyMat);
+      body.position.y=2.4; body.castShadow=true; g.add(body);
+
+      // legs (share the torso colour so the whole outfit reads as one suit)
+      const legL=new THREE.Mesh(legGeo,bodyMat); legL.position.set(-0.32,1.05,0); legL.castShadow=true; g.add(legL);
+      const legR=new THREE.Mesh(legGeo,bodyMat); legR.position.set(0.32,1.05,0); legR.castShadow=true; g.add(legR);
+
+      // shoulders + hanging arms
+      const shoulders=new THREE.Mesh(shoulderGeo,bodyMat); shoulders.position.y=3.0; shoulders.castShadow=true; g.add(shoulders);
+      const armL=new THREE.Mesh(armGeo,bodyMat); armL.position.set(-0.78,2.45,0); g.add(armL);
+      const armR=new THREE.Mesh(armGeo,bodyMat); armR.position.set(0.78,2.45,0); g.add(armR);
+
+      // head + neckerchief
+      const skinMat=new THREE.MeshStandardMaterial({color:SKIN,roughness:1});
+      const head=new THREE.Mesh(headGeo,skinMat); head.position.y=3.5; head.castShadow=true; g.add(head);
+      const kerchief=new THREE.Mesh(kerchiefGeo,new THREE.MeshStandardMaterial({color:0x9b3a22,roughness:1}));
+      kerchief.position.set(0,3.18,0.01); g.add(kerchief);
+
+      // wide cowboy hat — dark matte brim + crown
+      const hatMat=new THREE.MeshStandardMaterial({color:HAT,roughness:0.95});
+      const brim=new THREE.Mesh(brimGeo,hatMat); brim.position.y=3.84; g.add(brim);
+      const crown=new THREE.Mesh(crownGeo,hatMat); crown.position.y=4.04; g.add(crown);
+
+      // gun-belt + holster + six-shooter butt at the hip
+      const leatherMat=new THREE.MeshStandardMaterial({color:LEATHER,roughness:1});
+      const belt=new THREE.Mesh(beltGeo,leatherMat); belt.position.set(0,1.62,0.02); g.add(belt);
+      const holster=new THREE.Mesh(holsterGeo,leatherMat); holster.position.set(0.5,1.35,0.06); g.add(holster);
+      const gun=new THREE.Mesh(gunGeo,new THREE.MeshStandardMaterial({color:STEEL,roughness:0.5,metalness:0.3}));
+      gun.position.set(0.62,1.55,0.1); gun.rotation.z=0.5; g.add(gun);
+
+      // chest target marker (a small star) — recolours to ochre when hostile
       const badgeMat=new THREE.MeshStandardMaterial({color:0x4a3b2a,roughness:0.6,metalness:0});
-      const badge=new THREE.Mesh(badgeGeo,badgeMat); badge.position.set(0,2.5,0.1); g.add(badge);
+      const badge=new THREE.Mesh(badgeGeo,badgeMat); badge.position.set(0,2.45,0.1); g.add(badge);
+
       g.position.set(x,0,-9);
       g.userData={body,bodyMat,badge,badgeMat,hostile:false,baseX:x,downT:0};
       scene.add(g);

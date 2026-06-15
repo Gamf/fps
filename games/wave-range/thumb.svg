@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 200">
+  <!-- sky -->
+  <rect width="320" height="200" fill="#f3ece0"/>
+  <rect width="320" height="150" fill="#cfe0e6"/>
+  <!-- distant treeline -->
+  <rect x="0" y="118" width="320" height="34" fill="#6f6a3b"/>
+  <!-- grass field -->
+  <rect x="0" y="150" width="320" height="50" fill="#7e8a44"/>
+  <rect x="0" y="150" width="320" height="8" fill="#6f6a3b"/>
+  <!-- flying duck silhouette -->
+  <g>
+    <!-- body -->
+    <ellipse cx="150" cy="92" rx="40" ry="24" fill="#221f17"/>
+    <!-- head -->
+    <circle cx="186" cy="78" r="17" fill="#221f17"/>
+    <!-- beak -->
+    <polygon points="201,76 224,80 201,87" fill="#c8923a"/>
+    <!-- eye -->
+    <circle cx="190" cy="74" r="3" fill="#f3ece0"/>
+    <!-- raised wing -->
+    <polygon points="138,84 108,40 158,72" fill="#9b3a22"/>
+    <!-- tail -->
+    <polygon points="112,94 92,86 114,100" fill="#221f17"/>
+  </g>
+  <!-- targeting reticle over the duck -->
+  <circle cx="174" cy="86" r="46" fill="none" stroke="#9b3a22" stroke-width="4"/>
+  <line x1="174" y1="30" x2="174" y2="60" stroke="#9b3a22" stroke-width="4"/>
+  <line x1="174" y1="112" x2="174" y2="142" stroke="#9b3a22" stroke-width="4"/>
+  <line x1="118" y1="86" x2="148" y2="86" stroke="#9b3a22" stroke-width="4"/>
+  <line x1="200" y1="86" x2="230" y2="86" stroke="#9b3a22" stroke-width="4"/>
+  <circle cx="174" cy="86" r="5" fill="#9b3a22"/>
+</svg>

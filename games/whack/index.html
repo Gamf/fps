@@ -140,15 +140,16 @@
     key.shadow.camera.left=-14; key.shadow.camera.right=14; key.shadow.camera.top=14; key.shadow.camera.bottom=-14;
     key.shadow.camera.far=60; scene.add(key);
 
-    // ---- Playfield: warm board with a grid of holes ----
+    // ---- Playfield: the classic Whac-A-Mole grassy green field with dirt holes ----
+    // Signature look: a flat green "lawn" top edged by a warm red cabinet trim.
     const GRID=3, GAP=3.0; // 3x3 holes
     const board=new THREE.Mesh(
       new THREE.BoxGeometry(GAP*GRID+2.2,0.7,GAP*GRID+2.2),
-      new THREE.MeshStandardMaterial({color:0x4a3b2a,roughness:1,metalness:0}));
+      new THREE.MeshStandardMaterial({color:0x5c7a3a,roughness:1,metalness:0})); // grass green
     board.position.y=-0.35; board.receiveShadow=true; scene.add(board);
     const trim=new THREE.Mesh(
       new THREE.BoxGeometry(GAP*GRID+2.8,0.5,GAP*GRID+2.8),
-      new THREE.MeshStandardMaterial({color:0x9b3a22,roughness:0.95}));
+      new THREE.MeshStandardMaterial({color:0x9b3a22,roughness:0.95})); // red cabinet rim
     trim.position.y=-0.6; trim.receiveShadow=true; scene.add(trim);
 
     // ---- Shared geometries ----
@@ -159,16 +160,16 @@
     const pupilGeo=new THREE.SphereGeometry(0.06,8,6);
     const noseGeo=new THREE.SphereGeometry(0.16,10,8);
 
-    const holeMat=new THREE.MeshStandardMaterial({color:0x2a2018,roughness:1});
-    const rimMat=new THREE.MeshStandardMaterial({color:0x3a2c20,roughness:1});
+    const holeMat=new THREE.MeshStandardMaterial({color:0x241b14,roughness:1}); // dark hole
+    const rimMat=new THREE.MeshStandardMaterial({color:0x6b4a2c,roughness:1}); // dirt mound rim
     const eyeMat=new THREE.MeshStandardMaterial({color:0xefe6d2,roughness:0.8});
     const pupilMat=new THREE.MeshStandardMaterial({color:0x2a2018,roughness:0.7});
 
-    // mole materials by type — honest matte earthy tones, no glow/emissive.
-    const matNormal=new THREE.MeshStandardMaterial({color:0xa4623a,roughness:0.9}); // clay
-    const matGold=new THREE.MeshStandardMaterial({color:0xc8923a,roughness:0.7,metalness:0.15}); // ochre
+    // mole materials by type — honest matte tones, no glow/emissive.
+    const matNormal=new THREE.MeshStandardMaterial({color:0x6b4a30,roughness:0.9}); // classic brown mole
+    const matGold=new THREE.MeshStandardMaterial({color:0xc8923a,roughness:0.7,metalness:0.15}); // ochre bonus
     const matBomb=new THREE.MeshStandardMaterial({color:0x6f6a3b,roughness:0.95}); // olive (the hazard)
-    const noseMatN=new THREE.MeshStandardMaterial({color:0x9b3a22,roughness:0.9}); // oxblood nose
+    const noseMatN=new THREE.MeshStandardMaterial({color:0xd98a8a,roughness:0.85}); // soft pink mole nose
     const noseMatB=new THREE.MeshStandardMaterial({color:0x2a2018,roughness:0.8});
 
     // Build a mole figure (clickable). type: 'normal'|'gold'|'bomb'
@@ -337,7 +338,7 @@
           const mult=comboMult();
           const gained=base*mult;
           score+=gained; scoreEl.textContent=score;
-          splash(new THREE.Vector3(h.x,0,h.z),h.type==='gold'?0xc8923a:0xa4623a);
+          splash(new THREE.Vector3(h.x,0,h.z),h.type==='gold'?0xc8923a:0x6b4a30);
           popup(wp,'+'+gained,'');
           refreshCombo();
           h.state='whacked'; h.timer=0;

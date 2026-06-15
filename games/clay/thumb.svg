@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 200">
+  <rect width="320" height="200" fill="#f3ece0"/>
+  <rect y="150" width="320" height="50" fill="#6f6a3b"/>
+  <path d="M0 150 H320 V165 Q160 145 0 165 Z" fill="#221f17" opacity="0.18"/>
+
+  <!-- launch arc the clay travels along -->
+  <path d="M40 140 Q120 40 230 78" fill="none" stroke="#221f17" stroke-width="3" stroke-linecap="round" stroke-dasharray="2 12" opacity="0.5"/>
+
+  <!-- flying orange clay pigeon (inverted-saucer disc) -->
+  <g transform="translate(112,86) rotate(-18)">
+    <ellipse cx="0" cy="6" rx="30" ry="9" fill="#9b3a22"/>
+    <ellipse cx="0" cy="0" rx="30" ry="11" fill="#e8642a"/>
+    <ellipse cx="0" cy="-3" rx="16" ry="6" fill="#c8923a"/>
+  </g>
+
+  <!-- chipped shards flying off -->
+  <path d="M150 70 l9 -7 l3 9 z" fill="#e8642a"/>
+  <path d="M160 86 l10 1 l-5 8 z" fill="#d2552a"/>
+
+  <!-- crosshair reticle locked on -->
+  <circle cx="222" cy="76" r="26" fill="none" stroke="#221f17" stroke-width="4"/>
+  <line x1="222" y1="44" x2="222" y2="62" stroke="#221f17" stroke-width="4" stroke-linecap="round"/>
+  <line x1="222" y1="90" x2="222" y2="108" stroke="#221f17" stroke-width="4" stroke-linecap="round"/>
+  <line x1="190" y1="76" x2="208" y2="76" stroke="#221f17" stroke-width="4" stroke-linecap="round"/>
+  <line x1="236" y1="76" x2="254" y2="76" stroke="#221f17" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="222" cy="76" r="3" fill="#9b3a22"/>
+
+  <!-- trap house at the launch point -->
+  <rect x="28" y="128" width="34" height="22" fill="#221f17"/>
+  <rect x="24" y="122" width="42" height="8" fill="#9b3a22"/>
+</svg>

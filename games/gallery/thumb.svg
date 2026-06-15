@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 200" width="320" height="200">
+  <!-- booth ground -->
+  <rect width="320" height="200" fill="#f3ece0"/>
+  <rect y="150" width="320" height="50" fill="#6f6a3b"/>
+  <!-- back wall of booth -->
+  <rect x="34" y="56" width="252" height="100" fill="#efe6d2"/>
+  <!-- striped awning marquee -->
+  <rect x="30" y="34" width="260" height="26" fill="#9b3a22"/>
+  <path d="M30 60 l16 18 16-18 16 18 16-18 16 18 16-18 16 18 16-18 16 18 16-18 16 18 16-18 16 18 16-18 16 18 16-18 16 18 16-18 V60 Z" fill="#9b3a22"/>
+  <path d="M46 60 l16 18 16-18 z M78 60 l16 18 16-18 z M110 60 l16 18 16-18 z M142 60 l16 18 16-18 z M174 60 l16 18 16-18 z M206 60 l16 18 16-18 z M238 60 l16 18 16-18 z" fill="#efe6d2"/>
+  <!-- conveyor rails / lanes -->
+  <rect x="44" y="100" width="232" height="4" fill="#221f17"/>
+  <rect x="44" y="134" width="232" height="4" fill="#221f17"/>
+  <!-- small target on the far rail -->
+  <circle cx="96" cy="92" r="13" fill="#efe6d2" stroke="#221f17" stroke-width="2"/>
+  <circle cx="96" cy="92" r="8" fill="#c8923a"/>
+  <circle cx="96" cy="92" r="3" fill="#9b3a22"/>
+  <!-- big bullseye target on the near rail -->
+  <circle cx="190" cy="126" r="26" fill="#efe6d2" stroke="#221f17" stroke-width="3"/>
+  <circle cx="190" cy="126" r="19" fill="#9b3a22"/>
+  <circle cx="190" cy="126" r="12" fill="#efe6d2"/>
+  <circle cx="190" cy="126" r="5" fill="#9b3a22"/>
+  <!-- crosshair reticle over the big target -->
+  <circle cx="190" cy="126" r="33" fill="none" stroke="#221f17" stroke-width="3"/>
+  <line x1="190" y1="84" x2="190" y2="106" stroke="#221f17" stroke-width="3"/>
+  <line x1="190" y1="146" x2="190" y2="168" stroke="#221f17" stroke-width="3"/>
+  <line x1="148" y1="126" x2="170" y2="126" stroke="#221f17" stroke-width="3"/>
+  <line x1="210" y1="126" x2="232" y2="126" stroke="#221f17" stroke-width="3"/>
+</svg>

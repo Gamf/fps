@@ -200,6 +200,17 @@
       r.rotation.set(range(0,3),range(0,3),range(0,3));
       r.castShadow=true; r.receiveShadow=true; scene.add(r);
     }
+    // low earthen target-line berm across the far range — the signature backstop
+    // of a rifle/sniper range, read clearly downrange behind where targets pop up.
+    const bermMat=new THREE.MeshStandardMaterial({color:0x57371f,roughness:1});
+    const berm=new THREE.Mesh(new THREE.BoxGeometry(220,9,10),bermMat);
+    berm.position.set(0,4,-290); berm.receiveShadow=true; berm.castShadow=true; scene.add(berm);
+    // a row of slim distance-marker posts beside the lane (matte, calm)
+    const postMat=new THREE.MeshStandardMaterial({color:0x6f6a3b,roughness:1});
+    for(let i=1;i<=6;i++){
+      const p=new THREE.Mesh(new THREE.BoxGeometry(0.18,1.4,0.18),postMat);
+      p.position.set(-13,0.7,-i*42); p.castShadow=true; scene.add(p);
+    }
 
     // lights — single warm directional + soft warm hemisphere (warm sky / warm ground)
     scene.add(new THREE.HemisphereLight(0xffe2b4,0x4a3b2a,0.85));
@@ -212,9 +223,14 @@
     // A target = bullseye disc on a stake. They pop up, hold a window, then drop.
     const NUM=6;
     const targets=[];
-    const ringR=[0.92,0.66,0.40,0.18];                 // bullseye band radii
+    const ringR=[0.92,0.66,0.40,0.18];                 // bullseye SCORING band radii (do not change — fire() depends on these)
     // warm matte target face: cream / oxblood / cream / ochre bullseye
     const ringHex=[0xefe6d2,0x9b3a22,0xefe6d2,0xc8923a];
+    // extra VISUAL-only bands woven between the scoring radii so the face reads as
+    // the classic concentric shooting-gallery bullseye (cream / oxblood alternation,
+    // bright ochre bull). These are pure decoration — not part of hit detection.
+    const faceR  =[1.00,0.92,0.79,0.66,0.53,0.40,0.29,0.18,0.085];
+    const faceHex=[0x2a1c12,0xefe6d2,0x9b3a22,0xefe6d2,0x9b3a22,0xefe6d2,0x9b3a22,0xc8923a,0x6f3216];
     function makeTarget(){
       const g=new THREE.Group();
       // stake
@@ -223,18 +239,18 @@
       stake.position.y=1.1; stake.castShadow=true; g.add(stake);
       // disc face (concentric rings) — slight z offset so they layer cleanly
       const faceMat=new THREE.MeshStandardMaterial({color:0x241712,roughness:0.85,side:THREE.DoubleSide});
-      const back=new THREE.Mesh(new THREE.CircleGeometry(1.0,40),faceMat);
+      const back=new THREE.Mesh(new THREE.CircleGeometry(1.06,44),faceMat);
       back.position.set(0,2.9,0); g.add(back);
       const rings=[];
-      for(let r=0;r<ringR.length;r++){
-        const m=new THREE.Mesh(new THREE.CircleGeometry(ringR[r],36),
-          new THREE.MeshStandardMaterial({color:ringHex[r],roughness:0.7,emissive:0x000000,side:THREE.DoubleSide}));
-        m.position.set(0,2.9,0.01+r*0.01); g.add(m); rings.push(m);
+      for(let r=0;r<faceR.length;r++){
+        const m=new THREE.Mesh(new THREE.CircleGeometry(faceR[r],40),
+          new THREE.MeshStandardMaterial({color:faceHex[r],roughness:0.7,emissive:0x000000,side:THREE.DoubleSide}));
+        m.position.set(0,2.9,0.01+r*0.006); g.add(m); rings.push(m);
       }
       // a "hit core" mesh used purely as the raycast picker (whole disc)
       const pick=new THREE.Mesh(new THREE.CircleGeometry(1.0,8),
         new THREE.MeshBasicMaterial({visible:false,side:THREE.DoubleSide}));
-      pick.position.set(0,2.9,0.06); g.add(pick);
+      pick.position.set(0,2.9,0.08); g.add(pick);
       g.visible=false;                                  // hidden until placeTarget() pops it up
       scene.add(g);
       const data={group:g,rings,pick,alive:false,state:'down',t:0,baseY:0,life:0,dist:0};

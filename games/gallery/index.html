@@ -153,7 +153,10 @@
     const rand = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
     const rrange = (a, b) => a + (b - a) * rand();
 
-    // ---- Booth scene (warm, matte, printed-catalogue palette) ----
+    // ---- Booth scene (classic carnival shooting-gallery look, matte) ----
+    // Signature read of the arcade "Carnival" booth: a striped awning over a
+    // tall back wall, rows of targets sliding along rails like a conveyor, each
+    // lane backed by its own painted board. All flat matte warm/clay colours.
     // plain solid warm-brown ground plane (no grid)
     const floor = new THREE.Mesh(new THREE.PlaneGeometry(120, 120),
       new THREE.MeshStandardMaterial({ color: 0x4a3b2a, roughness: 0.95, metalness: 0 }));
@@ -164,21 +167,46 @@
       new THREE.MeshStandardMaterial({ color: 0x6f5a40, roughness: 1, metalness: 0 }));
     wall.position.set(0, 6, -34); wall.receiveShadow = true; scene.add(wall);
 
-    // rails each lane rides on — warm brown timber
-    const ROWS_Z = [-14, -20, -27];        // depth of each lane (near -> far)
+    // depth of each lane (near -> far)
+    const ROWS_Z = [-14, -20, -27];
+    // classic conveyor: each lane runs one fixed way, alternating per row so the
+    // booth reads as rows sliding in opposite directions (the carnival signature)
+    const LANE_DIR = [1, -1, 1];
+    // per-lane painted backboard behind each row of targets — alternating clay
+    // tints so the three lanes read as distinct conveyor shelves
+    const BOARD_COLS = [0x7a5a3a, 0x6f5a40, 0x63513c];
     const RAILS = [];
-    for (const z of ROWS_Z) {
-      const rail = new THREE.Mesh(new THREE.BoxGeometry(40, 0.12, 0.5),
-        new THREE.MeshStandardMaterial({ color: 0x4a3b2a, roughness: 0.85, metalness: 0 }));
-      rail.position.set(0, 0.7, z + 0.6); rail.receiveShadow = true; scene.add(rail);
+    ROWS_Z.forEach((z, li) => {
+      // backboard for the lane (gives each row a flat painted shelf)
+      const board = new THREE.Mesh(new THREE.BoxGeometry(42, 3.4, 0.3),
+        new THREE.MeshStandardMaterial({ color: BOARD_COLS[li], roughness: 1, metalness: 0 }));
+      board.position.set(0, 2.4 + li * 0.4, z - 0.9); board.receiveShadow = true; scene.add(board);
+      // rail the lane rides on — warm brown timber
+      const rail = new THREE.Mesh(new THREE.BoxGeometry(40, 0.18, 0.6),
+        new THREE.MeshStandardMaterial({ color: 0x3c2f20, roughness: 0.85, metalness: 0 }));
+      rail.position.set(0, 0.7 + li * 0.4, z + 0.6); rail.receiveShadow = true; scene.add(rail);
       RAILS.push(rail);
-    }
-    // striped awning canopy — oxblood / cream, matte
-    const awnGeo = new THREE.BoxGeometry(2.6, 0.5, 4);
-    for (let i = -7; i <= 7; i++) {
+    });
+    // striped awning canopy — bold oxblood / cream scallops, matte (booth marquee)
+    const awnGeo = new THREE.BoxGeometry(2.6, 0.55, 4);
+    for (let i = -8; i <= 8; i++) {
       const m = new THREE.Mesh(awnGeo, new THREE.MeshStandardMaterial({
         color: (i & 1) ? 0x9b3a22 : 0xefe6d2, roughness: 0.85, metalness: 0 }));
-      m.position.set(i * 2.6, 9.2, -10); m.rotation.x = -0.32; m.castShadow = true; scene.add(m);
+      m.position.set(i * 2.6, 9.4, -9.5); m.rotation.x = -0.34; m.castShadow = true; scene.add(m);
+    }
+    // scalloped valance hanging off the awning lip — same stripe, the dangly fringe
+    const valGeo = new THREE.ConeGeometry(1.3, 1.5, 4);
+    for (let i = -8; i <= 8; i++) {
+      const v = new THREE.Mesh(valGeo, new THREE.MeshStandardMaterial({
+        color: (i & 1) ? 0xefe6d2 : 0x9b3a22, roughness: 0.85, metalness: 0 }));
+      v.position.set(i * 2.6, 7.7, -8.2); v.rotation.x = Math.PI; v.rotation.y = Math.PI / 4;
+      scene.add(v);
+    }
+    // two striped support posts framing the booth mouth
+    for (const sx of [-19.5, 19.5]) {
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 9.5, 12),
+        new THREE.MeshStandardMaterial({ color: 0x9b3a22, roughness: 0.9, metalness: 0 }));
+      post.position.set(sx, 4.7, -9); post.castShadow = true; scene.add(post);
     }
 
     // ---- Lighting (warm, gentle: one directional + soft hemisphere) ----
@@ -237,12 +265,14 @@
     function spawnTarget(forceLane) {
       const lane = forceLane != null ? forceLane : (Math.floor(rand() * ROWS_Z.length));
       const z = ROWS_Z[lane];
-      const dir = rand() < 0.5 ? 1 : -1;
+      // classic conveyor: the whole lane slides one fixed way (alternating per row)
+      const dir = LANE_DIR[lane];
       const radius = rrange(0.55, 0.95) * (1 - lane * 0.12);   // far lanes a touch smaller
       const bonus = rand() < 0.16;
       const t = makeTarget(bonus ? radius * 0.78 : radius, bonus ? 'bonus' : 'normal');
       const x = dir > 0 ? -19 : 19;
-      const y = 1.5 + radius + rrange(0, 1.2);
+      // sit each target on its lane's rail so the row reads as a conveyor shelf
+      const y = 1.5 + lane * 0.4 + radius + rrange(0, 0.6);
       t.position.set(x, y, z);
       t.userData = {
         dir, radius: bonus ? radius * 0.78 : radius,

@@ -87,22 +87,37 @@
     document.body.appendChild(renderer.domElement);
 
     const scene=new THREE.Scene();
-    // Solid warm cream sky — no gradient skydome (GAMF Quarterly: theme, not gradients).
-    scene.background=new THREE.Color(0xe9dcc0);
-    // Subtle, warm distance haze matching the sky so drones fade gently — never
-    // fully fog out at their spawn distance (~70-95 units).
-    scene.fog=new THREE.FogExp2(0xe9dcc0,0.0040);
+    // Duck Hunt signature backdrop: a calm matte daytime sky-blue (done flat, no
+    // gradient skydome, no neon). This is the iconic recognisable colour identity.
+    const SKY=0x6fa8c7;
+    scene.background=new THREE.Color(SKY);
+    // Subtle distance haze matching the sky so birds fade gently — never fully
+    // fog out at their spawn distance (~70-95 units).
+    scene.fog=new THREE.FogExp2(SKY,0.0040);
 
     const camera=new THREE.PerspectiveCamera(74,1,0.1,400); camera.position.set(0,1.6,0);
     let yaw=0,pitch=0;
 
-    // Plain solid warm ground plane for depth (no grid lines).
+    // Flat green grassy field below — the Duck Hunt meadow done matte (no grid lines).
     const floor=new THREE.Mesh(new THREE.PlaneGeometry(600,600),
-      new THREE.MeshStandardMaterial({color:0x6f6a3b,roughness:0.98,metalness:0}));
-    floor.rotation.x=-Math.PI/2; floor.receiveShadow=true; scene.add(floor);
+      new THREE.MeshStandardMaterial({color:0x5a7d39,roughness:0.98,metalness:0}));
+    floor.rotation.x=-Math.PI/2; floor.position.y=-0.6; floor.receiveShadow=true; scene.add(floor);
 
-    // Lighting: warm hemisphere (cream sky / olive ground) + one gentle warm key.
-    scene.add(new THREE.HemisphereLight(0xefe6d2,0x4a3b2a,0.9));
+    // A low row of simple matte shrubs/grass tufts on the horizon — the classic
+    // Duck Hunt hedgerow silhouette. Original flat shapes, no sprite art.
+    (function bushes(){
+      const tuftGeo=new THREE.SphereGeometry(1,8,6);
+      const tuftMat=new THREE.MeshStandardMaterial({color:0x3f5e29,roughness:1,metalness:0});
+      for(let i=0;i<26;i++){
+        const x=(i-13)*3.4+(Math.sin(i*1.7)*1.2), s=1.4+Math.sin(i*2.3)*0.6;
+        const m=new THREE.Mesh(tuftGeo,tuftMat);
+        m.position.set(x, -0.2, -34-Math.cos(i*1.1)*2);
+        m.scale.set(s*1.6, s*0.9, s); scene.add(m);
+      }
+    })();
+
+    // Lighting: soft sky/ground hemisphere + one gentle warm key.
+    scene.add(new THREE.HemisphereLight(0xbfe0f0,0x3f5e29,0.95));
     const key=new THREE.DirectionalLight(0xffe8c4,1.05); key.position.set(8,16,6);
     key.castShadow=true; key.shadow.mapSize.set(1024,1024);
     key.shadow.camera.left=-40; key.shadow.camera.right=40; key.shadow.camera.top=40; key.shadow.camera.bottom=-40;
@@ -111,24 +126,52 @@
     // Deterministic LCG.
     let seed=1337; const rand=()=> (seed=(seed*1103515245+12345)&0x7fffffff)/0x7fffffff;
 
-    // ---- Drone factory: a reusable body shape so we share geometry. ----
-    const coreGeo=new THREE.IcosahedronGeometry(0.55,0);
-    const ringGeo=new THREE.TorusGeometry(0.78,0.07,8,20);
-    const eyeGeo=new THREE.SphereGeometry(0.16,10,8);
+    // ---- Bird factory: a Duck-Hunt-style flying duck built from our own simple
+    // flat-shaded shapes (egg body, round head, wedge beak, two flapping wings,
+    // a fan tail). We keep the old hook names so the animation loop is unchanged:
+    //   userData.core -> body (faces the player / spins gently)
+    //   userData.ring -> wing pivot (we re-purpose its rotation as the flap)
+    //   userData.eye  -> the eye dot (still pulses).
+    // Shared geometry so all birds reuse the same buffers. ----
+    const bodyGeo=new THREE.SphereGeometry(0.5,12,9);   // squashed into an egg below
+    const headGeo=new THREE.SphereGeometry(0.3,10,8);
+    const beakGeo=new THREE.ConeGeometry(0.13,0.34,8);
+    const wingGeo=new THREE.SphereGeometry(0.5,8,5);    // squashed into a flat wing
+    const tailGeo=new THREE.ConeGeometry(0.26,0.5,4);
+    const eyeGeo=new THREE.SphereGeometry(0.07,8,6);
     function makeDrone(color){
       const g=new THREE.Group();
-      // Honest matte body — no metalness (would render dark without an env map),
-      // no emissive glow. Lit purely by the scene lights.
-      const core=new THREE.Mesh(coreGeo,new THREE.MeshStandardMaterial({
-        color,roughness:0.85,metalness:0}));
-      core.castShadow=true; g.add(core);
-      const ring=new THREE.Mesh(ringGeo,new THREE.MeshStandardMaterial({
-        color:0x4a3b2a,roughness:0.8,metalness:0}));
-      ring.rotation.x=Math.PI/2; g.add(ring);
-      const eye=new THREE.Mesh(eyeGeo,new THREE.MeshStandardMaterial({
-        color:0xefe6d2,roughness:0.6,metalness:0}));
-      eye.position.set(0,0,0.5); g.add(eye);
-      g.userData.core=core; g.userData.ring=ring; g.userData.eye=eye;
+      const mat=c=>new THREE.MeshStandardMaterial({color:c,roughness:0.9,metalness:0});
+      const beakMat=mat(0xc8923a);            // ochre bill (shared duck-bill colour)
+
+      // Body — an egg, broad side facing the player, tilted slightly nose-up.
+      const body=new THREE.Mesh(bodyGeo,mat(color));
+      body.scale.set(1.0,0.82,1.45); body.castShadow=true; g.add(body);
+
+      // Head + bill at the front (toward +Z, i.e. toward the player).
+      const head=new THREE.Mesh(headGeo,mat(color));
+      head.position.set(0,0.22,0.62); head.castShadow=true; g.add(head);
+      const beak=new THREE.Mesh(beakGeo,beakMat);
+      beak.position.set(0,0.18,0.9); beak.rotation.x=Math.PI/2; g.add(beak);
+
+      // Tail fanned out at the back.
+      const tail=new THREE.Mesh(tailGeo,mat(color));
+      tail.position.set(0,0.06,-0.78); tail.rotation.x=-Math.PI/2; g.add(tail);
+
+      // Two wings on a shared pivot we flap via its rotation in the loop.
+      const wings=new THREE.Group();
+      const mkWing=s=>{ const w=new THREE.Mesh(wingGeo,mat(color));
+        w.scale.set(1.5,0.18,0.8); w.position.set(0.62*s,0.1,-0.05);
+        w.rotation.z=s*0.35; w.castShadow=true; return w; };
+      const wL=mkWing(1), wR=mkWing(-1); wings.add(wL,wR); g.add(wings);
+
+      // Eye dot on the head.
+      const eye=new THREE.Mesh(eyeGeo,mat(0x221f17));
+      eye.position.set(0.16,0.3,0.78); g.add(eye);
+
+      // Hook names kept for the existing animation loop.
+      g.userData.core=body; g.userData.ring=wings; g.userData.eye=eye;
+      g.userData.wL=wL; g.userData.wR=wR;
       return g;
     }
 
@@ -270,8 +313,13 @@
           d.userData.bob+=dt*3; d.position.z+=d.userData.speed*dt*60;
           d.position.x+=d.userData.sway*dt*60;
           d.position.y+=Math.sin(d.userData.bob)*0.006;
-          d.userData.ring.rotation.z+=dt*2.2;
-          d.userData.core.rotation.y+=dt*1.5;
+          // Flap the wings up/down (the duck's signature motion).
+          const flap=Math.sin(d.userData.bob*2.2);
+          d.userData.wL.rotation.z= 0.35+flap*0.7;
+          d.userData.wR.rotation.z=-0.35-flap*0.7;
+          // Bank gently toward the direction it sways, nose-up bob.
+          d.userData.core.rotation.z=d.userData.sway*-22;
+          d.rotation.x=Math.sin(d.userData.bob)*0.05-0.05;
           // pulse eye
           const pl=0.6+0.4*Math.sin(ts*0.008+d.userData.bob);
           d.userData.eye.scale.setScalar(0.8+pl*0.5);

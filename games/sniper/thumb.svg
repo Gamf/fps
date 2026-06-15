@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 200" width="320" height="200">
+  <!-- warm ground -->
+  <rect width="320" height="200" fill="#efe6d2"/>
+  <rect y="132" width="320" height="68" fill="#6f6a3b"/>
+  <!-- distant ridge -->
+  <path d="M0 132 L52 104 L104 124 L168 96 L232 122 L288 102 L320 124 L320 132 Z" fill="#c8923a"/>
+
+  <!-- scope eyepiece: dark ring + cream field -->
+  <circle cx="160" cy="100" r="78" fill="#221f17"/>
+  <circle cx="160" cy="100" r="68" fill="#9b3a22"/>
+  <circle cx="160" cy="100" r="62" fill="#f3ece0"/>
+
+  <!-- bullseye target inside the scope -->
+  <circle cx="160" cy="100" r="40" fill="#9b3a22"/>
+  <circle cx="160" cy="100" r="30" fill="#f3ece0"/>
+  <circle cx="160" cy="100" r="20" fill="#9b3a22"/>
+  <circle cx="160" cy="100" r="11" fill="#c8923a"/>
+  <circle cx="160" cy="100" r="4" fill="#6f3216"/>
+
+  <!-- crosshair, broken into four arms so the bull stays clear at centre -->
+  <rect x="158.5" y="38"  width="3"   height="46" fill="#221f17"/>
+  <rect x="158.5" y="116" width="3"   height="46" fill="#221f17"/>
+  <rect x="98"  y="98.5" width="46"  height="3"  fill="#221f17"/>
+  <rect x="176" y="98.5" width="46"  height="3"  fill="#221f17"/>
+
+  <!-- mil-dots on the cross arms -->
+  <circle cx="160" cy="64"  r="2.6" fill="#221f17"/>
+  <circle cx="160" cy="136" r="2.6" fill="#221f17"/>
+  <circle cx="124" cy="100" r="2.6" fill="#221f17"/>
+  <circle cx="196" cy="100" r="2.6" fill="#221f17"/>
+</svg>

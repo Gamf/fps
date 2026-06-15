@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 200" width="320" height="200">
+  <!-- desert sky -->
+  <rect width="320" height="200" fill="#e8b86a"/>
+  <!-- low sun disc -->
+  <circle cx="248" cy="58" r="30" fill="#f3ece0"/>
+  <!-- flat-topped mesa / butte horizon -->
+  <path d="M0 132 H40 V96 H96 V132 H132 V108 H176 V132 H320 V200 H0 Z" fill="#9b3a22"/>
+  <!-- desert ground -->
+  <rect y="150" width="320" height="50" fill="#c8923a"/>
+  <!-- cowboy gunslinger silhouette -->
+  <g fill="#221f17">
+    <!-- hat brim + crown -->
+    <ellipse cx="100" cy="74" rx="30" ry="7"/>
+    <rect x="86" y="56" width="28" height="20" rx="3"/>
+    <!-- head -->
+    <rect x="90" y="74" width="20" height="20" rx="3"/>
+    <!-- torso -->
+    <rect x="80" y="94" width="40" height="46" rx="3"/>
+    <!-- arm -->
+    <rect x="118" y="98" width="12" height="34" rx="3"/>
+    <!-- legs -->
+    <rect x="84" y="140" width="14" height="34" rx="2"/>
+    <rect x="102" y="140" width="14" height="34" rx="2"/>
+  </g>
+  <!-- neckerchief -->
+  <rect x="88" y="90" width="24" height="9" rx="2" fill="#9b3a22"/>
+  <!-- gun-belt + holster -->
+  <rect x="78" y="128" width="44" height="9" rx="2" fill="#6f6a3b"/>
+  <rect x="116" y="135" width="11" height="16" rx="2" fill="#6f6a3b"/>
+  <!-- crosshair reticle over the gunslinger -->
+  <circle cx="100" cy="108" r="40" fill="none" stroke="#221f17" stroke-width="3"/>
+  <line x1="100" y1="60" x2="100" y2="86" stroke="#221f17" stroke-width="3"/>
+  <line x1="100" y1="130" x2="100" y2="156" stroke="#221f17" stroke-width="3"/>
+  <line x1="52" y1="108" x2="78" y2="108" stroke="#221f17" stroke-width="3"/>
+  <line x1="122" y1="108" x2="148" y2="108" stroke="#221f17" stroke-width="3"/>
+  <circle cx="100" cy="108" r="4" fill="#9b3a22"/>
+</svg>

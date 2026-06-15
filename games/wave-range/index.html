@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-  <meta name="theme-color" content="#3a2c20">
+  <meta name="theme-color" content="#5fa7d6">
   <title>Wave Range — Gamf</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -12,11 +12,11 @@
   <style>
     body { --gx-accent: #9b3a22; }
     html,body{height:100%;overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none}
-    body{background:#3a2c20}
+    body{background:#5fa7d6}
     .cross{position:fixed;top:50%;left:50%;width:26px;height:26px;margin:-13px 0 0 -13px;z-index:4;pointer-events:none}
-    .cross::before,.cross::after{content:"";position:absolute;background:#efe6d2;opacity:.95}
+    .cross::before,.cross::after{content:"";position:absolute;background:#221f17;opacity:.95}
     .cross::before{left:12px;top:0;width:2px;height:26px}.cross::after{top:12px;left:0;height:2px;width:26px}
-    .cross span{position:absolute;inset:0;border:2px solid rgba(239,230,210,.6);border-radius:50%}
+    .cross span{position:absolute;inset:0;border:2px solid rgba(34,31,23,.6);border-radius:50%}
     .pausetag{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:5;
       font-family:var(--gx-font-display);font-weight:700;font-size:1.4rem;color:#efe6d2;letter-spacing:.1em;display:none}
     .pausetag.show{display:block}
@@ -76,23 +76,33 @@
     renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
     document.body.appendChild(renderer.domElement);
 
-    // Solid warm dusk background (no gradient skydome, no grid).
+    // Duck Hunt sky: a solid, calm pale blue (no gradient skydome, no grid).
     const scene=new THREE.Scene();
-    scene.background=new THREE.Color(0x3a2c20);
-    // Subtle warm fog matching the background; reaches past the farthest target (~z=-31).
-    scene.fog=new THREE.Fog(0x3a2c20,40,110);
+    scene.background=new THREE.Color(0x5fa7d6);
+    // Subtle haze matching the sky; reaches past the farthest target (~z=-31).
+    scene.fog=new THREE.Fog(0x7db8df,55,120);
 
     const camera=new THREE.PerspectiveCamera(72,1,0.1,200); camera.position.set(0,1.6,0);
     let yaw=0,pitch=0;
 
-    // Plain solid warm ground plane (no grid lines).
-    const floor=new THREE.Mesh(new THREE.PlaneGeometry(120,120),
-      new THREE.MeshStandardMaterial({color:0x4a3b2a,roughness:0.95,metalness:0.0}));
-    floor.rotation.x=-Math.PI/2; floor.receiveShadow=true; scene.add(floor);
+    // Duck Hunt grass field: a flat, solid green ground plane (no grid lines).
+    const floor=new THREE.Mesh(new THREE.PlaneGeometry(240,240),
+      new THREE.MeshStandardMaterial({color:0x4f8f3a,roughness:0.95,metalness:0.0}));
+    floor.rotation.x=-Math.PI/2; floor.position.y=-0.4; floor.receiveShadow=true; scene.add(floor);
 
-    // Gentle warm lighting: hemisphere (warm sky / warm ground) + a single warm directional.
-    scene.add(new THREE.HemisphereLight(0xe9dcc0,0x4a3b2a,0.8));
-    const dl=new THREE.DirectionalLight(0xffe2b0,1.1); dl.position.set(6,12,4);
+    // Darker green treeline strip standing at the back of the field — the classic
+    // Duck Hunt horizon of bushes/trees. A simple flat band, no detail.
+    const treeline=new THREE.Mesh(new THREE.PlaneGeometry(200,9),
+      new THREE.MeshStandardMaterial({color:0x356b27,roughness:1.0,metalness:0.0}));
+    treeline.position.set(0,3.6,-40); scene.add(treeline);
+    // A low, lighter strip of foreground brush just in front of the player's view.
+    const brush=new THREE.Mesh(new THREE.PlaneGeometry(200,3.2),
+      new THREE.MeshStandardMaterial({color:0x3f7d30,roughness:1.0,metalness:0.0}));
+    brush.position.set(0,1.2,-38.6); scene.add(brush);
+
+    // Gentle daylight: hemisphere (sky / grass bounce) + a single soft directional.
+    scene.add(new THREE.HemisphereLight(0xdff0ff,0x4f8f3a,0.85));
+    const dl=new THREE.DirectionalLight(0xfff4d8,1.1); dl.position.set(6,12,4);
     dl.castShadow=true; dl.shadow.mapSize.set(1024,1024);
     dl.shadow.camera.left=-30; dl.shadow.camera.right=30; dl.shadow.camera.top=30; dl.shadow.camera.bottom=-30;
     scene.add(dl);
@@ -103,16 +113,39 @@
     document.getElementById('bestHud').textContent=best;
     let seed=11; const rnd=()=> (seed=(seed*1103515245+12345)&0x7fffffff)/0x7fffffff;
 
-    const targGeo=new THREE.SphereGeometry(0.55,20,16);
-    // Warm earthy target colours: oxblood, clay, ochre, olive.
-    const TARG_COLORS=[0x9b3a22,0xa4623a,0xc8923a,0x6f6a3b];
+    // Targets are simple flat-shape ducks (Duck Hunt's signature game-bird), built
+    // from a few primitives — our own plain silhouette, not any real sprite art.
+    // Duck Hunt's two recognisable bird colours: a black-duck and a red-duck.
+    const DUCK_BODY=[0x2f3a4a,0x9b3a22];   // slate body, oxblood body
+    const DUCK_WING=[0x556070,0xc8923a];   // lighter wing, ochre wing
+    const bodyGeo=new THREE.SphereGeometry(0.55,18,14);
+    const headGeo=new THREE.SphereGeometry(0.3,14,12);
+    const wingGeo=new THREE.SphereGeometry(0.34,12,10);
+    const beakGeo=new THREE.ConeGeometry(0.12,0.36,8);
     function spawn(){
-      const col=new THREE.Color(TARG_COLORS[(rnd()*TARG_COLORS.length)|0]);
-      // Honest matte target, lit by the scene lights (no emissive glow).
-      const m=new THREE.Mesh(targGeo,new THREE.MeshStandardMaterial({
-        color:col,roughness:0.8,metalness:0.0}));
-      m.position.set((rnd()-0.5)*26, 0.8+rnd()*3.4, -7-rnd()*24);
-      m.castShadow=true; m.userData.vx=(rnd()-0.5)*0.05; scene.add(m); targets.push(m);
+      const ci=(rnd()*DUCK_BODY.length)|0;
+      const bodyCol=new THREE.Color(DUCK_BODY[ci]);
+      const wingCol=new THREE.Color(DUCK_WING[ci]);
+      const matte=c=>new THREE.MeshStandardMaterial({color:c,roughness:0.85,metalness:0.0});
+      // Group is the hit target; the shoot() raycast walks up to it via .parent.
+      const g=new THREE.Group();
+      g.userData.col=bodyCol;            // colour used for the hit burst
+      const body=new THREE.Mesh(bodyGeo,matte(bodyCol));
+      body.scale.set(1.25,0.85,0.9); body.castShadow=true; g.add(body);
+      const head=new THREE.Mesh(headGeo,matte(bodyCol));
+      head.position.set(0.62,0.3,0); head.castShadow=true; g.add(head);
+      const beak=new THREE.Mesh(beakGeo,matte(0xc8923a));
+      beak.position.set(0.92,0.26,0); beak.rotation.z=-Math.PI/2; g.add(beak);
+      const wing=new THREE.Mesh(wingGeo,matte(wingCol));
+      wing.position.set(-0.05,0.18,0); wing.scale.set(0.9,0.55,1.3); g.add(wing);
+      const tail=new THREE.Mesh(beakGeo,matte(bodyCol));
+      tail.position.set(-0.72,0.12,0); tail.rotation.z=Math.PI/2.4; tail.scale.set(1.1,1.4,1.1); g.add(tail);
+      g.userData.wing=wing;              // flapped each frame
+      // A duck faces the way it drifts; flip the whole bird for left-movers.
+      const vx=(rnd()-0.5)*0.05; if(vx<0) g.scale.x=-1;
+      g.position.set((rnd()-0.5)*26, 0.8+rnd()*3.4, -7-rnd()*24);
+      g.userData.vx=vx; g.userData.flap=rnd()*6.28;
+      scene.add(g); targets.push(g);
     }
 
     // Particle burst pool.
@@ -152,7 +185,7 @@
       const h=ray.intersectObjects(targets,true)[0];
       if(h){ let obj=h.object; while(obj.parent && targets.indexOf(obj)<0) obj=obj.parent;
         const i=targets.indexOf(obj); if(i<0) return;
-        burst(obj.position,obj.material.color);
+        burst(obj.position,obj.userData.col||new THREE.Color(0x9b3a22));
         scene.remove(obj); targets.splice(i,1); hits++;
         document.getElementById('hits').textContent=hits; spawn(); } }
 
@@ -236,8 +269,14 @@
         timeLeft=Math.max(0,DURATION-(ts-tStart)/1000+pauseAcc);
         document.getElementById('time').textContent=Math.ceil(timeLeft);
         if(timeLeft<=0) end();
-        for(const t of targets){ t.position.x+=t.userData.vx; if(Math.abs(t.position.x)>14) t.userData.vx*=-1;
-          t.rotation.y+=dt; }
+        for(const t of targets){
+          t.position.x+=t.userData.vx;
+          if(Math.abs(t.position.x)>14){ t.userData.vx*=-1; t.scale.x*=-1; } // turn around & face the new way
+          // Flap the wing up and down so the bird reads as a flying duck.
+          t.userData.flap+=dt*9;
+          if(t.userData.wing) t.userData.wing.position.y=0.18+Math.sin(t.userData.flap)*0.22;
+          t.position.y+=Math.sin(t.userData.flap)*0.006; // gentle bob
+        }
         keyboardAim(dt);
         stepBursts(dt);
       }

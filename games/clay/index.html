@@ -109,13 +109,14 @@
     document.body.appendChild(renderer.domElement);
 
     // ---- Scene / sky ----
-    // GAMF Quarterly: a warm cream daylight sky as a flat solid background.
-    // No gradient skydome, no neon. Subtle warm fog matched to the sky colour
-    // so the distant tree-line fades into the page rather than a black void.
+    // Classic clay/skeet shoot reads against an open daytime SKY: shooters fire
+    // up into the blue. We use a soft, matte daylight blue (calm, no neon, no
+    // gradient skydome) so flying clays read instantly as the recognisable
+    // signature. Fog matched to the sky so the tree-line fades, not a void.
     const scene=new THREE.Scene();
-    const SKY=0xe9dcc0;                       // warm cream daylight
+    const SKY=0x9fc3d6;                       // soft matte daylight blue
     scene.background=new THREE.Color(SKY);
-    scene.fog=new THREE.Fog(SKY,70,200);      // subtle, warm, matches background
+    scene.fog=new THREE.Fog(SKY,70,200);      // subtle, matches background
 
     const camera=new THREE.PerspectiveCamera(70,1,0.1,400);
     camera.position.set(0,1.7,0);
@@ -136,8 +137,8 @@
       t.scale.setScalar(rrand(0.7,1.8)); scene.add(t);
     }
 
-    // ---- Lighting (one warm sun + gentle warm hemisphere; no coloured point-lights) ----
-    scene.add(new THREE.HemisphereLight(0xefe6d2,0x6f6a3b,0.85));      // warm sky / olive ground
+    // ---- Lighting (one warm sun + gentle hemisphere; no coloured point-lights) ----
+    scene.add(new THREE.HemisphereLight(0xcfe2ee,0x6f6a3b,0.85));      // blue sky / olive ground
     const sun=new THREE.DirectionalLight(0xfff1d8,1.0); sun.position.set(-18,26,12);
     sun.castShadow=true; sun.shadow.mapSize.set(1024,1024);
     sun.shadow.camera.left=-50; sun.shadow.camera.right=50; sun.shadow.camera.top=50; sun.shadow.camera.bottom=-50;
@@ -156,7 +157,9 @@
     const houseL=trapHouse(-9), houseR=trapHouse(9);
 
     // ---- Clay disc geometry (shared) ----
-    const clayGeo=new THREE.CylinderGeometry(0.42,0.5,0.16,18);
+    // Inverted-saucer profile: a wide flat rim tapering to a smaller domed top —
+    // the classic clay-pigeon silhouette, kept as a single simple primitive.
+    const clayGeo=new THREE.CylinderGeometry(0.30,0.52,0.18,20);
     const clayMatBase={roughness:0.85,metalness:0.05};
 
     // ---- Pieces / debris pool for breaks ----
@@ -198,8 +201,10 @@
     // Physics: launched from a trap house with an initial velocity along an arc,
     // gravity pulls them down. Player must lead the moving target.
     const clays=[]; const GRAV=9.5;
-    // warm, matte clay-pigeon colours: oxblood, clay, ochre
-    const CLAY_COLORS=[0x9b3a22,0xa4623a,0xc8923a];
+    // The clay pigeon's signature is bright orange against the sky — that's the
+    // instantly-recognisable look of a clay/skeet shoot. Matte (no emissive
+    // glow), in three warm orange-clay tones led by the iconic safety-orange.
+    const CLAY_COLORS=[0xe8642a,0xd2552a,0xc8923a];
     function launchClay(round){
       const fromLeft=rand()<0.5;
       const house=fromLeft?houseL:houseR;

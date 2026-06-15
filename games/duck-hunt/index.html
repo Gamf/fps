@@ -104,10 +104,11 @@
     document.body.appendChild(renderer.domElement);
 
     const scene=new THREE.Scene();
-    // Solid warm cream sky — daylight print-catalogue page, no gradient skydome.
-    const SKY=0xe9dcc0;
+    // Classic Duck Hunt signature: a clear daytime SKY-BLUE backdrop. Solid and
+    // matte (no gradient skydome, no glow) so it reads as the NES game at a glance.
+    const SKY=0x5fa9d6;
     scene.background=new THREE.Color(SKY);
-    // Subtle warm haze that matches the sky so the horizon fades cleanly.
+    // Subtle haze that matches the sky so the horizon fades cleanly into it.
     scene.fog=new THREE.Fog(SKY,90,300);
 
     const camera=new THREE.PerspectiveCamera(70,1,0.1,400); camera.position.set(0,1.6,0);
@@ -117,30 +118,32 @@
     let seed=20260613; const rand=()=> (seed=(seed*1103515245+12345)&0x7fffffff)/0x7fffffff;
 
     // ---- Ground + grass field + distant hill silhouette ----
-    // Plain solid warm-olive field, matte. No GridHelper, no grid lines.
+    // Classic Duck Hunt signature: a flat GREEN grassy field along the bottom of
+    // the scene. Solid matte green, no grid lines.
     const floor=new THREE.Mesh(new THREE.PlaneGeometry(600,600),
-      new THREE.MeshStandardMaterial({color:0x6f6a3b,roughness:1}));
+      new THREE.MeshStandardMaterial({color:0x4e8b3a,roughness:1}));
     floor.rotation.x=-Math.PI/2; floor.receiveShadow=true; scene.add(floor);
-    // a low ridge of bushes far away for parallax depth (warm olive, matte)
+    // a low ridge of dark-green bushes far away — the iconic foliage skyline
+    // (matte) that frames the bottom of the original's playfield.
     const bushGeo=new THREE.SphereGeometry(1,8,6);
-    const bushMat=new THREE.MeshStandardMaterial({color:0x595434,roughness:1});
+    const bushMat=new THREE.MeshStandardMaterial({color:0x2f6b2a,roughness:1});
     for(let i=0;i<54;i++){ const b=new THREE.Mesh(bushGeo,bushMat);
       const a=(i/54)*Math.PI*2; const r=120+rand()*40;
       b.position.set(Math.cos(a)*r,(0.4+rand()*1.6),Math.sin(a)*r);
       b.scale.set(2+rand()*3,1.2+rand()*1.4,2+rand()*3); scene.add(b); }
-    // grass tufts close in
-    const tuftMat=new THREE.MeshStandardMaterial({color:0x7c7340,roughness:1});
+    // grass tufts close in (brighter green blades catching the daylight)
+    const tuftMat=new THREE.MeshStandardMaterial({color:0x5fa340,roughness:1});
     const tuftGeo=new THREE.ConeGeometry(0.8,2.4,5);
     for(let i=0;i<38;i++){ const t=new THREE.Mesh(tuftGeo,tuftMat);
       t.position.set((rand()-0.5)*60,1.0,-6-rand()*42); t.rotation.y=rand()*6.28; scene.add(t); }
 
-    // ---- Lighting: one gentle warm sun + soft hemisphere (warm sky / warm ground) ----
-    scene.add(new THREE.HemisphereLight(0xefe6d2,0x6f6a3b,0.85));
-    const sun=new THREE.DirectionalLight(0xf3e6c8,1.0); sun.position.set(-14,18,-10);
+    // ---- Lighting: one gentle daytime sun + soft hemisphere (blue sky / green ground) ----
+    scene.add(new THREE.HemisphereLight(0xbfe0f4,0x4e8b3a,0.85));
+    const sun=new THREE.DirectionalLight(0xfff4d8,1.0); sun.position.set(-14,18,-10);
     sun.castShadow=true; sun.shadow.mapSize.set(1024,1024);
     sun.shadow.camera.left=-60; sun.shadow.camera.right=60; sun.shadow.camera.top=60; sun.shadow.camera.bottom=-60;
     sun.shadow.camera.far=200; scene.add(sun);
-    scene.add(new THREE.AmbientLight(0xe9dcc0,0.3));
+    scene.add(new THREE.AmbientLight(0x9fc4e0,0.3));
 
     // ---- Duck factory (shared geometry) ----
     const bodyGeo=new THREE.SphereGeometry(0.5,12,10);
